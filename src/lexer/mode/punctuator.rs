@@ -1,24 +1,27 @@
-
-use lexer::enums::{ LexerMode, TokenType, Punctuator, Operation };
-use lexer::state::{ LexerState };
+use lexer::enums::{LexerMode, TokenType, Punctuator, CommentType};
+use lexer::state::{LexerState};
 
 fn token(state: &mut LexerState, t: Punctuator) {
     state.tokens.push(TokenType::Punctuator(t));
     state.mode = LexerMode::None;
 }
 
-pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
+fn mode(state: &mut LexerState, t: Punctuator, i: i32) {
+    state.mode = LexerMode::Punctuator(t, i);
+}
+
+pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator, i: i32) -> bool {
     match (c, t) {
         (Some('<'), Punctuator::SmallThan) => {
-            state.mode = LexerMode::Punctuator(Punctuator::LeftShift);
+            mode(state, Punctuator::LeftShift, 0);
             true
         }
         (Some('>'), Punctuator::GreaterThan) => {
-            state.mode = LexerMode::Punctuator(Punctuator::RightShift);
+            mode(state, Punctuator::RightShift, 0);
             true
         }
         (Some('>'), Punctuator::RightShift) => {
-            token(state, Punctuator::RightShiftUnsigned);
+            mode(state, Punctuator::RightShiftUnsigned, 0);
             true
         }
         (Some('+'), Punctuator::Plus) => {
@@ -27,6 +30,25 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
         }
         (Some('>'), Punctuator::Equal) => {
             token(state, Punctuator::Lamda);
+            true
+        }
+        (Some('.'), Punctuator::Point) => {
+            if i == 1 {
+                token(state, Punctuator::ThreePoints)
+            } else {
+                mode(state, Punctuator::Point, 1);
+            }
+            true
+        }
+        (_, Punctuator::Point) => {
+            if i == 1 {
+                token(state, Punctuator::Point);
+            }
+            token(state, Punctuator::Point);
+            false
+        }
+        (Some('='), Punctuator::RightShiftUnsigned) => {
+            token(state, Punctuator::RightShiftUnsignedEq);
             true
         }
         (Some('='), Punctuator::GreaterThan) => {
@@ -38,11 +60,11 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
             true
         }
         (Some('='), Punctuator::Equal) => {
-            state.mode = LexerMode::Punctuator(Punctuator::IsEqual);
+            mode(state, Punctuator::IsEqual, 0);
             true
         }
         (Some('='), Punctuator::Invert) => {
-            state.mode = LexerMode::Punctuator(Punctuator::IsNotEqual);
+            mode(state, Punctuator::IsNotEqual, 0);
             true
         }
         (Some('='), Punctuator::IsEqual) => {
@@ -94,7 +116,7 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
             true
         }
         (Some('*'), Punctuator::Multiple) => {
-            state.mode = LexerMode::Punctuator(Punctuator::Exp);
+            mode(state, Punctuator::Exp, 0);
             true
         }
         (Some('|'), Punctuator::OrBitwise) => {
@@ -109,8 +131,13 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
             token(state, t);
             false
         }
-        (Some('/'), Punctuator::Divide) | (Some('*'), Punctuator::Divide) => {
-            state.mode = LexerMode::Comment(Operation::Start);
+        (Some('/'), Punctuator::Divide) => {
+            state.mode = LexerMode::Comment(CommentType::SingleLine);
+            state.tmp = String::new();
+            true
+        }
+        (Some('*'), Punctuator::Divide) => {
+            state.mode = LexerMode::Comment(CommentType::MultiLineStart);
             state.tmp = String::new();
             true
         }
@@ -118,10 +145,5 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator) -> bool {
             token(state, t);
             false
         }
-        //(_,_) => {
-        //    println!("Unhandled Parser State Reached: {:?}, {:?}, {:?}", c, state.mode, state.escaped);
-        //    state.mode = LexerMode::EOF;
-        //    true
-        //}
     }
 }

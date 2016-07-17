@@ -1,7 +1,6 @@
-
 use std::str::FromStr;
-use lexer::enums::{ LexerMode, NumberType, TokenType, LiteralType };
-use lexer::state::{ LexerState };
+use lexer::enums::{LexerMode, NumberType, TokenType, LiteralType};
+use lexer::state::{LexerState};
 
 fn token(state: &mut LexerState, t: LiteralType) {
     state.tokens.push(TokenType::Literal(t));
@@ -24,7 +23,7 @@ pub fn exec(state: &mut LexerState, c: Option<char>, t: NumberType) -> bool {
             state.tmp.push(c.unwrap());
             true
         }
-        (Some('a' ... 'f'), NumberType::Hex) | (Some('A' ... 'F'), NumberType::Hex)=> {
+        (Some('a' ... 'f'), NumberType::Hex) | (Some('A' ... 'F'), NumberType::Hex) => {
             state.tmp.push(c.unwrap());
             true
         }

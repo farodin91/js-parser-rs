@@ -1,6 +1,5 @@
-
-use lexer::enums::{ LexerMode, TokenType, LiteralType };
-use lexer::state::{ LexerState };
+use lexer::enums::{LexerMode, TokenType, LiteralType};
+use lexer::state::{LexerState};
 
 pub fn exec(state: &mut LexerState, c: Option<char>) -> bool {
     let escaped = state.escaped;

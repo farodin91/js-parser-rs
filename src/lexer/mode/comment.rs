@@ -1,41 +1,48 @@
+use lexer::enums::{LexerMode, CommentType, TokenType};
+use lexer::state::{LexerState};
 
-use lexer::enums::{LexerMode, Operation, TokenType};
-use lexer::state::{ LexerState };
-
-pub fn exec(state: &mut LexerState, c: Option<char>, t: Operation) -> bool {
+pub fn exec(state: &mut LexerState, c: Option<char>, t: CommentType) -> bool {
     match (c, t) {
-        (Some('\n'), Operation::End) => {
-            state.tmp.push('*');
+        (Some('\n'), CommentType::SingleLine) => {
             state.tokens.push(TokenType::CommentLiteral(state.tmp.clone()));
+            state.tokens.push(TokenType::LineTerminate);
             state.mode = LexerMode::None
         }
         (Some('\n'), _) => {
             state.tokens.push(TokenType::CommentLiteral(state.tmp.clone()));
+            state.tokens.push(TokenType::LineTerminate);
             state.mode = LexerMode::None
         }
-        (Some('/'), Operation::End) => {
+        (Some('/'), CommentType::MultiLineEnd) => {
             state.mode = LexerMode::None;
             state.tokens.push(TokenType::CommentLiteral(state.tmp.clone()));
         }
-        (Some('*'), Operation::Start) => {
-            state.mode = LexerMode::Comment(Operation::End);
+        (Some('*'), CommentType::MultiLineStart) => {
+            state.mode = LexerMode::Comment(CommentType::MultiLineEnd);
         }
-        (Some('*'), Operation::End) => {
-            state.tmp.push('*');
+        (Some('*'), CommentType::SingleLine) => {
+            state.tmp.push(c.unwrap());
+        }
+        (Some('*'), CommentType::MultiLineEnd) => {
+            state.tmp.push(c.unwrap());
+            state.mode = LexerMode::Comment(CommentType::MultiLineEnd);
         }
         (Some('*'), _) => {
-            state.mode = LexerMode::Comment(Operation::End);
+            state.mode = LexerMode::Comment(CommentType::MultiLineEnd);
         }
-        (Some(c), Operation::End) => {
+        (Some(c), CommentType::MultiLineEnd) => {
             state.tmp.push('*');
             state.tmp.push(c);
-            state.mode = LexerMode::Comment(Operation::Normal);
+            state.mode = LexerMode::Comment(CommentType::MultiLineNormal);
+        }
+        (Some(c), CommentType::SingleLine) => {
+            state.tmp.push(c);
         }
         (Some(c), _) => {
             state.tmp.push(c);
-            state.mode = LexerMode::Comment(Operation::Normal);
+            state.mode = LexerMode::Comment(CommentType::MultiLineNormal);
         }
-        (_,_)=> {
+        (_, _) => {
             state.mode = LexerMode::EOF;
             state.tokens.push(TokenType::CommentLiteral(state.tmp.clone()));
         }

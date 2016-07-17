@@ -1,5 +1,8 @@
 extern crate js_parser_rs;
-use js_parser_rs::lexer::enums::{ TokenType, Punctuator, Keyword, LiteralType };
+
+use js_parser_rs::lexer::enums::{TokenType, Punctuator, Keyword, LiteralType};
+use std::fs::File;
+use std::io::Read;
 
 #[test]
 fn test_empty() {
@@ -8,16 +11,17 @@ fn test_empty() {
 
 #[test]
 fn test_semicolon() {
-    assert_eq!(js_parser_rs::parse(";".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse(";;;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse(";;;;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse(";;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Semicolon),TokenType::Punctuator(Punctuator::Semicolon)]));
+    assert_eq!(js_parser_rs::parse(";".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(";;;".chars()), Ok(vec![TokenType::Semicolon,TokenType::Semicolon,TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(";;;;".chars()), Ok(vec![TokenType::Semicolon,TokenType::Semicolon,TokenType::Semicolon,TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(";;".chars()), Ok(vec![TokenType::Semicolon,TokenType::Semicolon]));
 }
 
 #[test]
 fn test_useless_spaces() {
     assert_eq!(js_parser_rs::parse(" ".chars()), Ok(vec![]));
-    assert_eq!(js_parser_rs::parse("; ".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Semicolon)]));
+    assert_eq!(js_parser_rs::parse("; ".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(",".chars()), Ok(vec![TokenType::Comma]));
 }
 
 #[test]
@@ -65,12 +69,17 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("!".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Invert)]));
     assert_eq!(js_parser_rs::parse("=>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Lamda)]));
     assert_eq!(js_parser_rs::parse(".".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Point)]));
+    assert_eq!(js_parser_rs::parse("...".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ThreePoints)]));
     assert_eq!(js_parser_rs::parse(":".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DoublePoint)]));
     assert_eq!(js_parser_rs::parse("=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal)]));
     assert_eq!(js_parser_rs::parse("++".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Increment)]));
     assert_eq!(js_parser_rs::parse("--".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Decrement)]));
     assert_eq!(js_parser_rs::parse("<<".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShift)]));
     assert_eq!(js_parser_rs::parse(">>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShift)]));
+    assert_eq!(js_parser_rs::parse("<<=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShiftEq)]));
+    assert_eq!(js_parser_rs::parse(">>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftEq)]));
+    assert_eq!(js_parser_rs::parse(">>>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsigned)]));
+    assert_eq!(js_parser_rs::parse(">>>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsignedEq)]));
     assert_eq!(js_parser_rs::parse("==".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsEqual)]));
     assert_eq!(js_parser_rs::parse("!=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsNotEqual)]));
     assert_eq!(js_parser_rs::parse("===".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsSame)]));
@@ -79,7 +88,6 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse(">=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::GreaterAndEqualThan)]));
     assert_eq!(js_parser_rs::parse("/".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Divide)]));
     assert_eq!(js_parser_rs::parse("/=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DivideEq)]));
-    assert_eq!(js_parser_rs::parse(">>>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsigned)]));
     assert_eq!(js_parser_rs::parse("?".chars()), Ok(vec![TokenType::Punctuator(Punctuator::If)]));
     assert_eq!(js_parser_rs::parse("~".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Tilde)]));
     assert_eq!(js_parser_rs::parse("%".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Mod)]));
@@ -96,8 +104,8 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("&&".chars()), Ok(vec![TokenType::Punctuator(Punctuator::And)]));
     assert_eq!(js_parser_rs::parse("**".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Exp)]));
     assert_eq!(js_parser_rs::parse("**=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ExpEq)]));
-    assert_eq!(js_parser_rs::parse("<<=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShiftEq)]));
-    assert_eq!(js_parser_rs::parse(">>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftEq)]));
+
+    assert_eq!(js_parser_rs::parse("..".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Point),TokenType::Punctuator(Punctuator::Point)]));
 }
 
 #[test]
@@ -141,13 +149,56 @@ fn test_keyword() {
 }
 
 #[test]
+fn test_terminate() {
+    assert_eq!(js_parser_rs::parse("\n".chars()), Ok(vec![TokenType::LineTerminate]));
+    assert_eq!(js_parser_rs::parse("\n ;".chars()), Ok(vec![TokenType::LineTerminate,TokenType::Semicolon]));
+}
+
+#[test]
 fn test_comment() {
     assert_eq!(js_parser_rs::parse("/*Hello World!".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello World!"))]));
-    assert_eq!(js_parser_rs::parse("/*Hello */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse("/*Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello *")),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse("/**Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("*Hello *")),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello * ")),TokenType::Punctuator(Punctuator::Semicolon)]));
-    assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::Punctuator(Punctuator::Semicolon)]));
+    assert_eq!(js_parser_rs::parse("// */ sdfsd".chars()), Ok(vec![TokenType::CommentLiteral(String::from(" */ sdfsd"))]));
+    assert_eq!(js_parser_rs::parse("/*Hello */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello *")),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/**Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("*Hello *")),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello * ")),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::LineTerminate,TokenType::Semicolon]));
+}
+
+#[test]
+fn test_parse_typical_file() {
+    let mut file = File::open("tests/js/jquery.js").unwrap();
+    let mut s = String::new();
+    file.read_to_string(&mut s).unwrap();
+    //js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    let a = js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    assert_eq!(a, vec![])
+}
+
+
+
+struct OwningChars { s: String, pos: usize }
+
+impl OwningChars {
+    pub fn new(s: String) -> OwningChars {
+        OwningChars { s: s, pos: 0 }
+    }
+}
+
+impl Iterator for OwningChars {
+    type Item = char;
+    fn next(&mut self) -> Option<char> {
+        if let Some(c) = self.s[self.pos..].chars().next() {
+            self.pos += c.len_utf8();
+            Some(c)
+        } else {
+            None
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.s.len() - self.pos;
+        ((len + 3) / 4, Some(len)) // see the Chars impl for detail
+    }
 }
 
 //#[test]

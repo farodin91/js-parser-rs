@@ -1,5 +1,5 @@
-use lexer::enums::{ LexerMode, TokenType, Keyword, LiteralType };
-use lexer::state::{ LexerState};
+use lexer::enums::{LexerMode, TokenType, Keyword, LiteralType};
+use lexer::state::{LexerState};
 
 
 fn end(state: &mut LexerState) {
@@ -42,6 +42,7 @@ fn end(state: &mut LexerState) {
     };
     state.tokens.push(token);
 }
+
 
 pub fn exec(state: &mut LexerState, c: Option<char>) -> bool {
     match c {

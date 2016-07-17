@@ -7,10 +7,11 @@ pub enum NumberType {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Operation {
-    Start,
-    End,
-    Normal
+pub enum CommentType {
+    SingleLine,
+    MultiLineStart,
+    MultiLineEnd,
+    MultiLineNormal
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Clone, Copy)]
@@ -50,8 +51,8 @@ pub enum LexerMode {
     None,
     String,
     Number(NumberType),
-    Punctuator(Punctuator),
-    Comment(Operation),
+    Punctuator(Punctuator, i32),
+    Comment(CommentType),
     Raw,
     EOF
 }
@@ -90,8 +91,6 @@ pub enum Punctuator {
     // .
     DoublePoint,
     // :
-    Semicolon,
-    // ;
     Equal,
     // =
     IsEqual,
@@ -152,6 +151,10 @@ pub enum Punctuator {
     // <<=
     RightShiftEq,
     // >>=
+    ThreePoints,
+    // ...
+    RightShiftUnsignedEq,
+    // >>>=
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -169,5 +172,8 @@ pub enum TokenType {
     Literal(LiteralType),
     CommentLiteral(String),
     SymbolLiteral(String),
-    Keyword(Keyword)
+    Keyword(Keyword),
+    Semicolon,
+    Comma,
+    LineTerminate
 }
