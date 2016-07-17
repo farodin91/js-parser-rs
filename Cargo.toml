@@ -1,0 +1,8 @@
+[package]
+name = "js-parser-rs"
+version = "0.1.0"
+authors = ["farodin91 <farodin91@googlemail.com>"]
+description = "A parser for javascript files"
+keywords = ["configuration", "library"]
+
+[dependencies]
