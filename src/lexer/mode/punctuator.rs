@@ -1,148 +1,149 @@
 use lexer::enums::{LexerMode, TokenType, Punctuator, CommentType};
 use lexer::state::{LexerState};
 
-fn token(state: &mut LexerState, t: Punctuator) {
-    state.tokens.push(TokenType::Punctuator(t));
-    state.mode = LexerMode::None;
-}
+impl LexerState {
+    fn punctuator(&mut self, t: Punctuator) {
+        self.push(TokenType::Punctuator(t));
+        self.update(LexerMode::None);
+    }
 
-fn mode(state: &mut LexerState, t: Punctuator, i: i32) {
-    state.mode = LexerMode::Punctuator(t, i);
+    fn mode_punctuator(&mut self, t: Punctuator, i: i32) {
+        self.update(LexerMode::Punctuator(t, i));
+    }
 }
-
 pub fn exec(state: &mut LexerState, c: Option<char>, t: Punctuator, i: i32) -> bool {
     match (c, t) {
         (Some('<'), Punctuator::SmallThan) => {
-            mode(state, Punctuator::LeftShift, 0);
+            state.mode_punctuator(Punctuator::LeftShift, 0);
             true
         }
         (Some('>'), Punctuator::GreaterThan) => {
-            mode(state, Punctuator::RightShift, 0);
+            state.mode_punctuator(Punctuator::RightShift, 0);
             true
         }
         (Some('>'), Punctuator::RightShift) => {
-            mode(state, Punctuator::RightShiftUnsigned, 0);
+            state.mode_punctuator(Punctuator::RightShiftUnsigned, 0);
             true
         }
         (Some('+'), Punctuator::Plus) => {
-            token(state, Punctuator::Increment);
+            state.punctuator(Punctuator::Increment);
             true
         }
         (Some('>'), Punctuator::Equal) => {
-            token(state, Punctuator::Lamda);
+            state.punctuator(Punctuator::Lamda);
             true
         }
         (Some('.'), Punctuator::Point) => {
             if i == 1 {
-                token(state, Punctuator::ThreePoints)
+                state.punctuator(Punctuator::ThreePoints)
             } else {
-                mode(state, Punctuator::Point, 1);
+                state.mode_punctuator(Punctuator::Point, 1);
             }
             true
         }
         (_, Punctuator::Point) => {
             if i == 1 {
-                token(state, Punctuator::Point);
+                state.punctuator(Punctuator::Point);
             }
-            token(state, Punctuator::Point);
+            state.punctuator(Punctuator::Point);
             false
         }
         (Some('='), Punctuator::RightShiftUnsigned) => {
-            token(state, Punctuator::RightShiftUnsignedEq);
+            state.punctuator(Punctuator::RightShiftUnsignedAssign);
             true
         }
         (Some('='), Punctuator::GreaterThan) => {
-            token(state, Punctuator::GreaterAndEqualThan);
+            state.punctuator(Punctuator::GreaterAndEqualThan);
             true
         }
         (Some('='), Punctuator::SmallThan) => {
-            token(state, Punctuator::SmallAndEqualThan);
+            state.punctuator(Punctuator::SmallAndEqualThan);
             true
         }
         (Some('='), Punctuator::Equal) => {
-            mode(state, Punctuator::IsEqual, 0);
+            state.mode_punctuator(Punctuator::IsEqual, 0);
             true
         }
         (Some('='), Punctuator::Invert) => {
-            mode(state, Punctuator::IsNotEqual, 0);
+            state.mode_punctuator(Punctuator::IsNotEqual, 0);
             true
         }
         (Some('='), Punctuator::IsEqual) => {
-            token(state, Punctuator::IsSame);
+            state.punctuator(Punctuator::IsSame);
             true
         }
         (Some('='), Punctuator::IsNotEqual) => {
-            token(state, Punctuator::IsNotSame);
+            state.punctuator(Punctuator::IsNotSame);
             true
         }
         (Some('='), Punctuator::Divide) => {
-            token(state, Punctuator::DivideEq);
+            state.punctuator(Punctuator::DivideAssign);
             true
         }
         (Some('='), Punctuator::Mod) => {
-            token(state, Punctuator::ModEq);
+            state.punctuator(Punctuator::ModAssign);
             true
         }
         (Some('='), Punctuator::Xor) => {
-            token(state, Punctuator::XorEq);
+            state.punctuator(Punctuator::XorAssign);
             true
         }
         (Some('='), Punctuator::OrBitwise) => {
-            token(state, Punctuator::OrBitwiseEq);
+            state.punctuator(Punctuator::OrBitwiseAssign);
             true
         }
         (Some('='), Punctuator::Multiple) => {
-            token(state, Punctuator::MultipleEq);
+            state.punctuator(Punctuator::MultipleAssign);
             true
         }
         (Some('='), Punctuator::AndBitwise) => {
-            token(state, Punctuator::AndBitwiseEq);
+            state.punctuator(Punctuator::AndBitwiseAssign);
             true
         }
         (Some('='), Punctuator::Exp) => {
-            token(state, Punctuator::ExpEq);
+            state.punctuator(Punctuator::ExpAssign);
             true
         }
         (Some('='), Punctuator::LeftShift) => {
-            token(state, Punctuator::LeftShiftEq);
+            state.punctuator(Punctuator::LeftShiftAssign);
             true
         }
         (Some('='), Punctuator::RightShift) => {
-            token(state, Punctuator::RightShiftEq);
+            state.punctuator(Punctuator::RightShiftAssign);
             true
         }
         (Some('&'), Punctuator::AndBitwise) => {
-            token(state, Punctuator::And);
+            state.punctuator(Punctuator::And);
             true
         }
         (Some('*'), Punctuator::Multiple) => {
-            mode(state, Punctuator::Exp, 0);
+            state.mode_punctuator(Punctuator::Exp, 0);
             true
         }
         (Some('|'), Punctuator::OrBitwise) => {
-            token(state, Punctuator::Or);
+            state.punctuator(Punctuator::Or);
             true
         }
         (Some('-'), Punctuator::Minus) => {
-            token(state, Punctuator::Decrement);
+            state.punctuator(Punctuator::Decrement);
             true
         }
         (_, Punctuator::SmallThan) | (_, Punctuator::GreaterThan) => {
-            token(state, t);
+            state.punctuator(t);
             false
         }
         (Some('/'), Punctuator::Divide) => {
-            state.mode = LexerMode::Comment(CommentType::SingleLine);
-            state.tmp = String::new();
+            state.update(LexerMode::Comment(CommentType::SingleLine));
+            state.reset_tmp();
             true
         }
         (Some('*'), Punctuator::Divide) => {
-            state.mode = LexerMode::Comment(CommentType::MultiLineStart);
-            state.tmp = String::new();
+            state.update(LexerMode::Comment(CommentType::MultiLineStart));
+            state.reset_tmp();
             true
         }
         (_, _) => {
-            token(state, t);
+            state.punctuator(t);
             false
         }
     }

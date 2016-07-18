@@ -47,6 +47,12 @@ pub enum Keyword {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum RegexState {
+    Normal,
+    Identifier
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LexerMode {
     None,
     String,
@@ -54,6 +60,7 @@ pub enum LexerMode {
     Punctuator(Punctuator, i32),
     Comment(CommentType),
     Raw,
+    Regex(RegexState),
     EOF
 }
 
@@ -65,7 +72,7 @@ pub enum Punctuator {
     // -
     Divide,
     // /
-    DivideEq,
+    DivideAssign,
     // /=
     SmallThan,
     // <
@@ -79,13 +86,13 @@ pub enum Punctuator {
     // }
     LeftBrace,
     // {
-    RightSquaredBrace,
+    RightBracket,
     // ]
-    LeftSquaredBrace,
+    LeftBracket,
     // [
-    RightRoundedBrace,
+    RightParen,
     // )
-    LeftRoundedBrace,
+    LeftParen,
     // (
     Point,
     // .
@@ -115,45 +122,45 @@ pub enum Punctuator {
     // =>
     RightShiftUnsigned,
     // >>>
-    If,
+    QuestionMark,
     // ?
     Tilde,
     //~
     Mod,
     //%
-    ModEq,
+    ModAssign,
     //%=
     Xor,
     //^
-    XorEq,
+    XorAssign,
     //^=
     OrBitwise,
     // |
-    OrBitwiseEq,
+    OrBitwiseAssign,
     // |=
     Or,
     // ||
     Multiple,
     // *
-    MultipleEq,
+    MultipleAssign,
     // *=
     AndBitwise,
     // &
-    AndBitwiseEq,
+    AndBitwiseAssign,
     // &=
     And,
     // &&
     Exp,
     // **
-    ExpEq,
+    ExpAssign,
     // **=
-    LeftShiftEq,
+    LeftShiftAssign,
     // <<=
-    RightShiftEq,
+    RightShiftAssign,
     // >>=
     ThreePoints,
     // ...
-    RightShiftUnsignedEq,
+    RightShiftUnsignedAssign
     // >>>=
 }
 
@@ -167,6 +174,12 @@ pub enum LiteralType {
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub enum RegexIdentifier {
+    Global,
+    None
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum TokenType {
     Punctuator(Punctuator),
     Literal(LiteralType),
@@ -175,5 +188,6 @@ pub enum TokenType {
     Keyword(Keyword),
     Semicolon,
     Comma,
+    Regex(String, RegexIdentifier),
     LineTerminate
 }

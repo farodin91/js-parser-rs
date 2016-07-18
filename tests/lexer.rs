@@ -1,6 +1,6 @@
 extern crate js_parser_rs;
 
-use js_parser_rs::lexer::enums::{TokenType, Punctuator, Keyword, LiteralType};
+use js_parser_rs::lexer::enums::{TokenType, Punctuator, Keyword, LiteralType, RegexIdentifier};
 use std::fs::File;
 use std::io::Read;
 
@@ -58,10 +58,10 @@ fn test_literal() {
 fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("{".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftBrace)]));
     assert_eq!(js_parser_rs::parse("}".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightBrace)]));
-    assert_eq!(js_parser_rs::parse("[".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftSquaredBrace)]));
-    assert_eq!(js_parser_rs::parse("]".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightSquaredBrace)]));
-    assert_eq!(js_parser_rs::parse("(".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftRoundedBrace)]));
-    assert_eq!(js_parser_rs::parse(")".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightRoundedBrace)]));
+    assert_eq!(js_parser_rs::parse("[".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftBracket)]));
+    assert_eq!(js_parser_rs::parse("]".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightBracket)]));
+    assert_eq!(js_parser_rs::parse("(".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftParen)]));
+    assert_eq!(js_parser_rs::parse(")".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightParen)]));
     assert_eq!(js_parser_rs::parse("+".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Plus)]));
     assert_eq!(js_parser_rs::parse("-".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Minus)]));
     assert_eq!(js_parser_rs::parse("<".chars()), Ok(vec![TokenType::Punctuator(Punctuator::SmallThan)]));
@@ -76,10 +76,10 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("--".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Decrement)]));
     assert_eq!(js_parser_rs::parse("<<".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShift)]));
     assert_eq!(js_parser_rs::parse(">>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShift)]));
-    assert_eq!(js_parser_rs::parse("<<=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShiftEq)]));
-    assert_eq!(js_parser_rs::parse(">>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftEq)]));
+    assert_eq!(js_parser_rs::parse("<<=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftShiftAssign)]));
+    assert_eq!(js_parser_rs::parse(">>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftAssign)]));
     assert_eq!(js_parser_rs::parse(">>>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsigned)]));
-    assert_eq!(js_parser_rs::parse(">>>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsignedEq)]));
+    assert_eq!(js_parser_rs::parse(">>>=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::RightShiftUnsignedAssign)]));
     assert_eq!(js_parser_rs::parse("==".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsEqual)]));
     assert_eq!(js_parser_rs::parse("!=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsNotEqual)]));
     assert_eq!(js_parser_rs::parse("===".chars()), Ok(vec![TokenType::Punctuator(Punctuator::IsSame)]));
@@ -87,23 +87,23 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("<=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::SmallAndEqualThan)]));
     assert_eq!(js_parser_rs::parse(">=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::GreaterAndEqualThan)]));
     assert_eq!(js_parser_rs::parse("/".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Divide)]));
-    assert_eq!(js_parser_rs::parse("/=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DivideEq)]));
-    assert_eq!(js_parser_rs::parse("?".chars()), Ok(vec![TokenType::Punctuator(Punctuator::If)]));
+    assert_eq!(js_parser_rs::parse("/=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DivideAssign)]));
+    assert_eq!(js_parser_rs::parse("?".chars()), Ok(vec![TokenType::Punctuator(Punctuator::QuestionMark)]));
     assert_eq!(js_parser_rs::parse("~".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Tilde)]));
     assert_eq!(js_parser_rs::parse("%".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Mod)]));
-    assert_eq!(js_parser_rs::parse("%=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ModEq)]));
+    assert_eq!(js_parser_rs::parse("%=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ModAssign)]));
     assert_eq!(js_parser_rs::parse("^".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Xor)]));
-    assert_eq!(js_parser_rs::parse("^=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::XorEq)]));
+    assert_eq!(js_parser_rs::parse("^=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::XorAssign)]));
     assert_eq!(js_parser_rs::parse("|".chars()), Ok(vec![TokenType::Punctuator(Punctuator::OrBitwise)]));
-    assert_eq!(js_parser_rs::parse("|=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::OrBitwiseEq)]));
+    assert_eq!(js_parser_rs::parse("|=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::OrBitwiseAssign)]));
     assert_eq!(js_parser_rs::parse("||".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Or)]));
     assert_eq!(js_parser_rs::parse("*".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Multiple)]));
-    assert_eq!(js_parser_rs::parse("*=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::MultipleEq)]));
+    assert_eq!(js_parser_rs::parse("*=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::MultipleAssign)]));
     assert_eq!(js_parser_rs::parse("&".chars()), Ok(vec![TokenType::Punctuator(Punctuator::AndBitwise)]));
-    assert_eq!(js_parser_rs::parse("&=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::AndBitwiseEq)]));
+    assert_eq!(js_parser_rs::parse("&=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::AndBitwiseAssign)]));
     assert_eq!(js_parser_rs::parse("&&".chars()), Ok(vec![TokenType::Punctuator(Punctuator::And)]));
     assert_eq!(js_parser_rs::parse("**".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Exp)]));
-    assert_eq!(js_parser_rs::parse("**=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ExpEq)]));
+    assert_eq!(js_parser_rs::parse("**=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ExpAssign)]));
 
     assert_eq!(js_parser_rs::parse("..".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Point),TokenType::Punctuator(Punctuator::Point)]));
 }
@@ -144,7 +144,7 @@ fn test_keyword() {
     assert_eq!(js_parser_rs::parse("while".chars()), Ok(vec![TokenType::Keyword(Keyword::While)]));
     assert_eq!(js_parser_rs::parse("class".chars()), Ok(vec![TokenType::Keyword(Keyword::Class)]));
     assert_eq!(js_parser_rs::parse("break".chars()), Ok(vec![TokenType::Keyword(Keyword::Break)]));
-    assert_eq!(js_parser_rs::parse("contiune".chars()), Ok(vec![TokenType::Keyword(Keyword::Continue)]));
+    assert_eq!(js_parser_rs::parse("continue".chars()), Ok(vec![TokenType::Keyword(Keyword::Continue)]));
     assert_eq!(js_parser_rs::parse("new".chars()), Ok(vec![TokenType::Keyword(Keyword::New)]));
 }
 
@@ -152,6 +152,14 @@ fn test_keyword() {
 fn test_terminate() {
     assert_eq!(js_parser_rs::parse("\n".chars()), Ok(vec![TokenType::LineTerminate]));
     assert_eq!(js_parser_rs::parse("\n ;".chars()), Ok(vec![TokenType::LineTerminate,TokenType::Semicolon]));
+}
+
+#[test]
+fn test_regex() {
+    assert_eq!(js_parser_rs::parse("= /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("= /ab+b/;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::None),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(": /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DoublePoint), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(", /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]))
 }
 
 #[test]
@@ -163,6 +171,7 @@ fn test_comment() {
     assert_eq!(js_parser_rs::parse("/**Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("*Hello *")),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello * ")),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::LineTerminate,TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello \n;*/".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello \n;"))]));
 }
 
 #[test]
@@ -170,9 +179,9 @@ fn test_parse_typical_file() {
     let mut file = File::open("tests/js/jquery.js").unwrap();
     let mut s = String::new();
     file.read_to_string(&mut s).unwrap();
-    //js_parser_rs::parse(OwningChars::new(s)).unwrap();
-    let a = js_parser_rs::parse(OwningChars::new(s)).unwrap();
-    assert_eq!(a, vec![])
+    js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    //let a = js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    //assert_eq!(a, vec![])
 }
 
 

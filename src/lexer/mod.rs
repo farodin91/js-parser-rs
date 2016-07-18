@@ -5,35 +5,30 @@ pub mod state;
 use std::result::Result;
 use std::vec::Vec;
 use lexer::enums::{TokenType, LexerMode};
-use lexer::state::LexerState;
+use lexer::state::{LexerState, LexerStateIterator};
 
-pub fn run(input: Box<Iterator<Item = char>>) -> Result<Vec<TokenType>, ()> {
-    let mut state = LexerState { input: input, tokens: Vec::new(), mode: LexerMode::None, tmp: String::new(), escaped: false, last: None };
+pub fn run(input: LexerStateIterator) -> Result<Vec<TokenType>, ()> {
+    let state = &mut LexerState::new(input);
     loop {
-        let c = next(&mut state);
+        let c = state.next_char();
         let mut done = false; // mut done: bool
         while !done {
-            let mode = state.mode;
+            let mode = state.mode();
             done = match mode {
-                LexerMode::None => mode::none::exec(&mut state, c),
-                LexerMode::String => mode::string::exec(&mut state, c),
-                LexerMode::Punctuator(t, i) => mode::punctuator::exec(&mut state, c, t, i),
-                LexerMode::Number(t) => mode::number::exec(&mut state, c, t),
-                LexerMode::Comment(t) => mode::comment::exec(&mut state, c, t),
-                LexerMode::Raw => mode::raw::exec(&mut state, c),
+                LexerMode::None => mode::none::exec(state, c),
+                LexerMode::String => mode::string::exec(state, c),
+                LexerMode::Punctuator(t, i) => mode::punctuator::exec(state, c, t, i),
+                LexerMode::Number(t) => mode::number::exec(state, c, t),
+                LexerMode::Comment(t) => mode::comment::exec(state, c, t),
+                LexerMode::Raw => mode::raw::exec(state, c),
+                LexerMode::Regex(t) => mode::regex::exec(state, c, t),
                 LexerMode::EOF => true
             }
         }
-        if state.mode == LexerMode::EOF {
+        if state.mode() == LexerMode::EOF {
             break;
-        } else {
-            state.last = c;
         }
     }
-    Ok(state.tokens)
-}
-
-
-fn next(state: &mut LexerState) -> Option<char> {
-    state.input.next()
+    let tokens = state.tokens();
+    Ok(tokens)
 }

@@ -8,4 +8,4 @@ var b = 1;
 
 var c= a/b;
 
-var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;

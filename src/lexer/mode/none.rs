@@ -1,63 +1,78 @@
-use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType};
+use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, RegexState};
 use lexer::state::{LexerState};
 
-fn start_punctuator(state: &mut LexerState, t: Punctuator) {
-    state.mode = LexerMode::Punctuator(t, 0);
+impl LexerState {
+    fn start_punctuator(&mut self, t: Punctuator) {
+        self.update(LexerMode::Punctuator(t, 0));
+    }
 }
 
 pub fn exec(state: &mut LexerState, c: Option<char>) -> bool {
     match c {
         Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
-            state.mode = LexerMode::Raw;
-            state.tmp = String::new();
-            state.tmp.push(c.unwrap());
+            state.update(LexerMode::Raw);
+            state.reset_tmp();
+            state.tmp_push(c.unwrap());
         }
         Some('"') => {
-            state.mode = LexerMode::String;
-            state.tmp = String::new();
+            state.update(LexerMode::String);
+            state.reset_tmp();
         }
         Some('0') => {
-            state.mode = LexerMode::Number(NumberType::None);
-            state.tmp = String::new();
-            state.tmp.push(c.unwrap());
+            state.update(LexerMode::Number(NumberType::None));
+            state.reset_tmp();
+            state.tmp_push(c.unwrap());
         }
         Some('1'...'9') => {
-            state.mode = LexerMode::Number(NumberType::NoneLiteral);
-            state.tmp = String::new();
-            state.tmp.push(c.unwrap());
+            state.update(LexerMode::Number(NumberType::NoneLiteral));
+            state.reset_tmp();
+            state.tmp_push(c.unwrap());
         }
         Some(' ') => (),
-        Some('\n') => state.tokens.push(TokenType::LineTerminate),
-        Some(';') => state.tokens.push(TokenType::Semicolon),
-        Some(',') => state.tokens.push(TokenType::Comma),
-        Some('{') => state.tokens.push(TokenType::Punctuator(Punctuator::LeftBrace)),
-        Some('}') => state.tokens.push(TokenType::Punctuator(Punctuator::RightBrace)),
-        Some('[') => state.tokens.push(TokenType::Punctuator(Punctuator::LeftSquaredBrace)),
-        Some(']') => state.tokens.push(TokenType::Punctuator(Punctuator::RightSquaredBrace)),
-        Some('(') => state.tokens.push(TokenType::Punctuator(Punctuator::LeftRoundedBrace)),
-        Some(')') => state.tokens.push(TokenType::Punctuator(Punctuator::RightRoundedBrace)),
-        Some('.') => start_punctuator(state, Punctuator::Point),
-        Some('~') => state.tokens.push(TokenType::Punctuator(Punctuator::Tilde)),
-        Some(':') => state.tokens.push(TokenType::Punctuator(Punctuator::DoublePoint)),
-        Some('?') => state.tokens.push(TokenType::Punctuator(Punctuator::If)),
-        Some('|') => start_punctuator(state, Punctuator::OrBitwise),
-        Some('*') => start_punctuator(state, Punctuator::Multiple),
-        Some('&') => start_punctuator(state, Punctuator::AndBitwise),
-        Some('^') => start_punctuator(state, Punctuator::Xor),
-        Some('+') => start_punctuator(state, Punctuator::Plus),
-        Some('-') => start_punctuator(state, Punctuator::Minus),
-        Some('%') => start_punctuator(state, Punctuator::Mod),
-        Some('=') => start_punctuator(state, Punctuator::Equal),
-        Some('<') => start_punctuator(state, Punctuator::SmallThan),
-        Some('/') => start_punctuator(state, Punctuator::Divide),
-        Some('!') => start_punctuator(state, Punctuator::Invert),
-        Some('>') => start_punctuator(state, Punctuator::GreaterThan),
+        Some('\n') => state.push(TokenType::LineTerminate),
+        Some(';') => state.push(TokenType::Semicolon),
+        Some(',') => state.push(TokenType::Comma),
+        Some('{') => state.push(TokenType::Punctuator(Punctuator::LeftBrace)),
+        Some('}') => state.push(TokenType::Punctuator(Punctuator::RightBrace)),
+        Some('[') => state.push(TokenType::Punctuator(Punctuator::LeftBracket)),
+        Some(']') => state.push(TokenType::Punctuator(Punctuator::RightBracket)),
+        Some('(') => state.push(TokenType::Punctuator(Punctuator::LeftParen)),
+        Some(')') => state.push(TokenType::Punctuator(Punctuator::RightParen)),
+        Some('~') => state.push(TokenType::Punctuator(Punctuator::Tilde)),
+        Some(':') => state.push(TokenType::Punctuator(Punctuator::DoublePoint)),
+        Some('?') => state.push(TokenType::Punctuator(Punctuator::QuestionMark)),
+        Some('.') => state.start_punctuator(Punctuator::Point),
+        Some('|') => state.start_punctuator(Punctuator::OrBitwise),
+        Some('*') => state.start_punctuator(Punctuator::Multiple),
+        Some('&') => state.start_punctuator(Punctuator::AndBitwise),
+        Some('^') => state.start_punctuator(Punctuator::Xor),
+        Some('+') => state.start_punctuator(Punctuator::Plus),
+        Some('-') => state.start_punctuator(Punctuator::Minus),
+        Some('%') => state.start_punctuator(Punctuator::Mod),
+        Some('=') => state.start_punctuator(Punctuator::Equal),
+        Some('<') => state.start_punctuator(Punctuator::SmallThan),
+        Some('/') => {
+            let last_token = state.last_token();
+            match last_token {
+                Some(TokenType::Punctuator(Punctuator::DoublePoint)) |
+                Some(TokenType::Punctuator(Punctuator::Equal)) |
+                Some(TokenType::Comma) => {
+                    state.update(LexerMode::Regex(RegexState::Normal));
+                    state.reset_tmp()
+                }
+                _ => {
+                    state.start_punctuator(Punctuator::Divide)
+                }
+            }
+        },
+        Some('!') => state.start_punctuator(Punctuator::Invert),
+        Some('>') => state.start_punctuator(Punctuator::GreaterThan),
         None => {
-            state.mode = LexerMode::EOF
+            state.update(LexerMode::EOF)
         }
         _ => {
-            state.mode = LexerMode::EOF;
-            println!("Unhandled Parser State Reached: {:?}, {:?}, {:?}", c, state.mode, state.escaped);
+            state.update(LexerMode::EOF);
+            println!("Unhandled Parser State Reached: {:?}, {:?}, {:?}", c, state.mode(), state.is_escaped());
         }
     }
     true
