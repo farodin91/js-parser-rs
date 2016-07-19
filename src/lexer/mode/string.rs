@@ -19,18 +19,18 @@ impl LexerState {
                     self.tmp_push('"');
                 }
                 (Some('"'), false, DoubleQuote) => {
-                    self.update(LexerMode::None);
                     let tmp = self.tmp();
                     self.push(TokenType::Literal(LiteralType::String(tmp)));
+                    self.update(LexerMode::None);
                 }
                 (Some('\''), true, SingleQuote) => {
                     self.escaped(false);
                     self.tmp_push('\'');
                 }
                 (Some('\''), false, SingleQuote) => {
-                    self.update(LexerMode::None);
                     let tmp = self.tmp();
                     self.push(TokenType::Literal(LiteralType::String(tmp)));
+                    self.update(LexerMode::None);
                 }
                 (Some('\\'), false, _) => {
                     self.escaped(true);
@@ -39,16 +39,16 @@ impl LexerState {
                     self.escaped(false);
                     self.tmp_push('\\');
                 }
-                (Some('f'), true, _) => {
+                (Some(c), true, _) => {
                     self.escaped(false);
                     self.tmp_push('\\');
-                    self.tmp_push('f');
+                    self.tmp_push(c);
                 }
                 (Some(x), _, _) => {
                     self.tmp_push(x)
                 }
                 (None, _, _) => {
-                    panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}, last: {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line(), self.last_token());
+                    panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}, last: {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line(), self.tokens());
                     //self.update(LexerMode::EOF)
                 }
             }

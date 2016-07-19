@@ -1,5 +1,4 @@
 extern crate js_parser_rs;
-
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -13130,6 +13129,7 @@ test!(harness_testbuiltinobject_prop_not_writable, "harness/testbuiltinobject-pr
 test!(harness_testbuiltinobject_undefined, "harness/testbuiltinobject-undefined.js");
 */
 
+#[allow(dead_code)]
 fn parse(file: &str) {
     let mut js = String::new();
     File::open(file).ok().unwrap().read_to_string(&mut js).ok();
@@ -13144,14 +13144,17 @@ fn parse(file: &str) {
     //ctx.print_ir(&mut String::new()).ok();
 }
 
+#[allow(dead_code)]
 struct OwningChars { s: String, pos: usize }
 
+#[allow(dead_code)]
 impl OwningChars {
     pub fn new(s: String) -> OwningChars {
         OwningChars { s: s, pos: 0 }
     }
 }
 
+#[allow(dead_code)]
 impl Iterator for OwningChars {
     type Item = char;
     fn next(&mut self) -> Option<char> {

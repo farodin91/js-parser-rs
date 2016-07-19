@@ -20,6 +20,10 @@ fn test_semicolon() {
 #[test]
 fn test_white_spaces() {
     assert_eq!(js_parser_rs::parse(" ".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\u{a0}".chars()), Ok(vec![]));
+    //assert_eq!(js_parser_rs::parse("\u{9}".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\u{b}".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\u{c}".chars()), Ok(vec![]));
     assert_eq!(js_parser_rs::parse("\t".chars()), Ok(vec![]));
     assert_eq!(js_parser_rs::parse("; ".chars()), Ok(vec![TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse(",".chars()), Ok(vec![TokenType::Comma]));
@@ -114,11 +118,19 @@ fn test_punctuator() {
 #[test]
 fn test_raw() {
     assert_eq!(js_parser_rs::parse("Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello\u{a0}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    //assert_eq!(js_parser_rs::parse("Hello\u{9}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello\u{b}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello\u{c}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello\t".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello ".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
     assert_eq!(js_parser_rs::parse("Hello=".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Equal)]));
     assert_eq!(js_parser_rs::parse("Hello('sd'".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::LeftParen),TokenType::Literal(LiteralType::String(String::from("sd")))]));
     assert_eq!(js_parser_rs::parse("Hello|Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::OrBitwise),TokenType::SymbolLiteral(String::from("Hello"))]));
     assert_eq!(js_parser_rs::parse("Hello.Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Point),TokenType::SymbolLiteral(String::from("Hello"))]));
     assert_eq!(js_parser_rs::parse("Hello/Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Divide),TokenType::SymbolLiteral(String::from("Hello"))]));
+
+    assert_eq!(js_parser_rs::parse("\\u005f\\u005f\\u0076\\u0061\\u0072".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("__var"))]));
 }
 
 #[test]
@@ -189,16 +201,26 @@ fn test_comment() {
 }
 
 
-
 #[test]
 #[should_panic]
 fn sould_panic_number() {
     println!("{:?}", js_parser_rs::parse("0o394".chars()));
 }
+
 #[test]
 #[should_panic]
 fn sould_panic_string() {
     println!("{:?}", js_parser_rs::parse("\"sdfsd".chars()));
+}
+
+#[test]
+fn test_parse_test_file() {
+    let mut file = File::open("tests/js/test.js").unwrap();
+    let mut s = String::new();
+    file.read_to_string(&mut s).unwrap();
+    js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    //let a = js_parser_rs::parse(OwningChars::new(s)).unwrap();
+    //assert_eq!(a, vec![])
 }
 
 #[test]
@@ -212,8 +234,10 @@ fn test_parse_typical_file() {
 }
 
 
-
-struct OwningChars { s: String, pos: usize }
+struct OwningChars {
+    s: String,
+    pos: usize
+}
 
 impl OwningChars {
     pub fn new(s: String) -> OwningChars {

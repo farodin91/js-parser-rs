@@ -7,6 +7,7 @@ impl LexerState {
     }
 
     pub fn parse_normal(&mut self, c: Option<char>) -> bool {
+        let mut handled = true;
         match c {
             Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
                 self.update(LexerMode::Raw);
@@ -31,10 +32,13 @@ impl LexerState {
                 self.reset_tmp();
                 self.tmp_push(c.unwrap());
             }
-            Some('\n') => self.push(TokenType::LineTerminate),
+            Some('\n') |
             Some('\r') => self.push(TokenType::LineTerminate),
-            Some(' ') => (),
-            Some('\t') => (),
+            Some(' ') |
+            Some('\t') |
+            Some('\u{c}') |
+            Some('\u{b}') |
+            Some('\u{a0}')  => (),
             Some(';') => self.push(TokenType::Semicolon),
             Some(',') => self.push(TokenType::Comma),
             Some('{') => self.push(TokenType::Punctuator(Punctuator::LeftBrace)),
@@ -62,11 +66,24 @@ impl LexerState {
             None => {
                 self.update(LexerMode::EOF)
             }
+            Some('\\') => {
+                let unicode = self.read_unicode();
+                match unicode {
+                    Some(c) => {
+                        println!("{:?}",c);
+                        self.overwrite_current_char(c);
+                        handled = false
+                    }
+                    _ => {
+                        panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                    }
+                }
+            }
             _ => {
                 panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
                 //self.update(LexerMode::EOF);
             }
         }
-        true
+        handled
     }
 }

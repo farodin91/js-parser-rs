@@ -48,16 +48,19 @@ impl LexerState {
     pub fn parse_raw(&mut self) -> bool {
         let mut handled: bool;
         loop {
-            //let escaped = self.is_escaped();
             let c = self.current_char();
             match c {
                 Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') | Some('0' ... '9') => {
+                    println!("{:?}",c);
                     self.tmp_push(c.unwrap());
                     handled = true
                 }
                 Some(' ') |
-                Some('\n') |
                 Some('\t') |
+                Some('\n') |
+                Some('\u{c}') |
+                Some('\u{b}') |
+                Some('\u{a0}') |
                 None => {
                     self.raw();
                     handled = true
@@ -87,6 +90,18 @@ impl LexerState {
                     self.raw();
                     handled = false
                 }
+                Some('\\') => {
+                    let unicode = self.read_unicode();
+                    match unicode {
+                        Some(c) => {
+                            self.overwrite_current_char(c);
+                            handled = false
+                        }
+                        _ => {
+                            panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                        }
+                    }
+                }
                 _ => {
                     panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
                     //self.update(LexerMode::EOF);
@@ -96,7 +111,9 @@ impl LexerState {
             if self.mode() == LexerMode::None {
                 break
             }
-            self.next_char();
+            if handled {
+                self.next_char();
+            }
         }
         handled
     }

@@ -1,4 +1,5 @@
 use lexer::enums::{TokenType, LexerMode};
+use std::char;
 
 pub type LexerStateIterator = Box<Iterator<Item = char>>;
 
@@ -29,6 +30,30 @@ impl LexerState {
             col: 0,
             line: 0
         }
+    }
+
+    pub fn read_unicode(&mut self) -> Option<char> {
+        let indicated = self.next_char().unwrap();
+        match indicated {
+            'u' => {
+                let mut tmp = String::new();
+                let a1 = self.next_char().unwrap();
+                tmp.push(a1);
+                let a1 = self.next_char().unwrap();
+                tmp.push(a1);
+                let a1 = self.next_char().unwrap();
+                tmp.push(a1);
+                let a1 = self.next_char().unwrap();
+                tmp.push(a1);
+                let i = u32::from_str_radix(&tmp, 16).unwrap();
+                char::from_u32(i)
+            },
+            _ => None
+        }
+    }
+    pub fn overwrite_current_char(&mut self, c: char){
+        self.last_char = self.current_char;
+        self.current_char = Some(c)
     }
 
     pub fn col(&mut self) -> i64 {
