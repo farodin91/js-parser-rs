@@ -44,47 +44,60 @@ impl LexerState {
         };
         self.push(token);
     }
-}
 
-pub fn exec(state: &mut LexerState, c: Option<char>) -> bool {
-    match c {
-        Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') | Some('0' ... '9') => {
-            state.tmp_push(c.unwrap());
-            true
+    pub fn parse_raw(&mut self) -> bool {
+        let mut handled: bool;
+        loop {
+            //let escaped = self.is_escaped();
+            let c = self.current_char();
+            match c {
+                Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') | Some('0' ... '9') => {
+                    self.tmp_push(c.unwrap());
+                    handled = true
+                }
+                Some(' ') |
+                Some('\n') |
+                Some('\t') |
+                None => {
+                    self.raw();
+                    handled = true
+                }
+                Some(':') |
+                Some('*') |
+                Some('+') |
+                Some('-') |
+                Some('!') |
+                Some('{') |
+                Some('}') |
+                Some('(') |
+                Some(')') |
+                Some('[') |
+                Some(']') |
+                Some(';') |
+                Some('.') |
+                Some(',') |
+                Some('<') |
+                Some('>') |
+                Some('?') |
+                Some('%') |
+                Some('=') |
+                Some('&') |
+                Some('|') |
+                Some('/') => {
+                    self.raw();
+                    handled = false
+                }
+                _ => {
+                    panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                    //self.update(LexerMode::EOF);
+                    //true
+                }
+            }
+            if self.mode() == LexerMode::None {
+                break
+            }
+            self.next_char();
         }
-        Some(' ') |
-        Some('\n') |
-        Some('\t') |
-        None => {
-            state.raw();
-            true
-        }
-        Some(':') |
-        Some('*') |
-        Some('+') |
-        Some('-') |
-        Some('!') |
-        Some('{') |
-        Some('}') |
-        Some('(') |
-        Some(')') |
-        Some('[') |
-        Some(']') |
-        Some(';') |
-        Some('.') |
-        Some(',') |
-        Some('<') |
-        Some('>') |
-        Some('?') |
-        Some('%') |
-        Some('&') => {
-            state.raw();
-            false
-        }
-        _ => {
-            println!("Unhandled Parser State Reached: {:?}, {:?}, {:?}", c, state.mode(), state.is_escaped());
-            state.update(LexerMode::EOF);
-            true
-        }
+        handled
     }
 }

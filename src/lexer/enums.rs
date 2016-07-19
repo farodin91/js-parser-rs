@@ -3,6 +3,7 @@ pub enum NumberType {
     None,
     NoneLiteral,
     Hex,
+    Octal,
     Float
 }
 
@@ -12,6 +13,11 @@ pub enum CommentType {
     MultiLineStart,
     MultiLineEnd,
     MultiLineNormal
+}
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum StringType {
+    SingleQuote,
+    DoubleQuote
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Clone, Copy)]
@@ -55,7 +61,7 @@ pub enum RegexState {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LexerMode {
     None,
-    String,
+    String(StringType),
     Number(NumberType),
     Punctuator(Punctuator, i32),
     Comment(CommentType),
@@ -176,6 +182,7 @@ pub enum LiteralType {
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum RegexIdentifier {
     Global,
+    Ignore,
     None
 }
 

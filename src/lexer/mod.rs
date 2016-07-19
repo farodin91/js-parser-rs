@@ -10,18 +10,19 @@ use lexer::state::{LexerState, LexerStateIterator};
 pub fn run(input: LexerStateIterator) -> Result<Vec<TokenType>, ()> {
     let state = &mut LexerState::new(input);
     loop {
-        let c = state.next_char();
+        state.next_char();
         let mut done = false; // mut done: bool
         while !done {
             let mode = state.mode();
+            let c = state.current_char();
             done = match mode {
-                LexerMode::None => mode::none::exec(state, c),
-                LexerMode::String => mode::string::exec(state, c),
-                LexerMode::Punctuator(t, i) => mode::punctuator::exec(state, c, t, i),
-                LexerMode::Number(t) => mode::number::exec(state, c, t),
-                LexerMode::Comment(t) => mode::comment::exec(state, c, t),
-                LexerMode::Raw => mode::raw::exec(state, c),
-                LexerMode::Regex(t) => mode::regex::exec(state, c, t),
+                LexerMode::None => state.parse_normal(c),
+                LexerMode::String(_) => state.parse_string(),
+                LexerMode::Punctuator(t, i) => state.parse_punctuator(c, t, i),
+                LexerMode::Number(_) => state.parse_number(),
+                LexerMode::Comment(t) => state.parse_comment(c, t),
+                LexerMode::Raw => state.parse_raw(),
+                LexerMode::Regex(_) => state.parse_regex(),
                 LexerMode::EOF => true
             }
         }

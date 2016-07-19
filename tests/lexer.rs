@@ -18,21 +18,21 @@ fn test_semicolon() {
 }
 
 #[test]
-fn test_useless_spaces() {
+fn test_white_spaces() {
     assert_eq!(js_parser_rs::parse(" ".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\t".chars()), Ok(vec![]));
     assert_eq!(js_parser_rs::parse("; ".chars()), Ok(vec![TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse(",".chars()), Ok(vec![TokenType::Comma]));
 }
 
 #[test]
-fn test_useless_double_quote_string() {
+fn test_useless_string() {
+    assert_eq!(js_parser_rs::parse("+ \"-\\f]' ms=''>\" +\n".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Plus),TokenType::Literal(LiteralType::String(String::from("-\\f]' ms=''>"))),TokenType::Punctuator(Punctuator::Plus),TokenType::LineTerminate]));
     assert_eq!(js_parser_rs::parse("\"Hello World!\"".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
     assert_eq!(js_parser_rs::parse("\"Hel{}\" \"Hello World!\"".chars()),Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hel{}"))),TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
-}
-
-#[test]
-fn test_useless_double_quote_escaped_string() {
     assert_eq!(js_parser_rs::parse("\"Hello\\\" World!\"".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello\" World!")))]));
+    assert_eq!(js_parser_rs::parse("'Hello World!'".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
+    assert_eq!(js_parser_rs::parse("'Hello\\' World!'".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello' World!")))]));
     assert_eq!(js_parser_rs::parse("\"Hello\\\\ World!\"".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello\\ World!")))]));
 }
 
@@ -42,6 +42,8 @@ fn test_useless_number() {
     assert_eq!(js_parser_rs::parse("0xabcdef0".chars()), Ok(vec![TokenType::Literal(LiteralType::Integer(0xabcdef0))]));
     assert_eq!(js_parser_rs::parse("0xABCDEF0".chars()), Ok(vec![TokenType::Literal(LiteralType::Integer(0xABCDEF0))]));
     assert_eq!(js_parser_rs::parse("0XABCDEF0".chars()), Ok(vec![TokenType::Literal(LiteralType::Integer(0xABCDEF0))]));
+    assert_eq!(js_parser_rs::parse("0o34".chars()), Ok(vec![TokenType::Literal(LiteralType::Integer(0o34))]));
+    assert_eq!(js_parser_rs::parse("0O34".chars()), Ok(vec![TokenType::Literal(LiteralType::Integer(0o34))]));
     assert_eq!(js_parser_rs::parse("0.0".chars()), Ok(vec![TokenType::Literal(LiteralType::Float(0.0))]));
     assert_eq!(js_parser_rs::parse("0.123".chars()), Ok(vec![TokenType::Literal(LiteralType::Float(0.123))]));
     assert_eq!(js_parser_rs::parse("123456789.123".chars()), Ok(vec![TokenType::Literal(LiteralType::Float(123456789.123))]));
@@ -104,6 +106,7 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("&&".chars()), Ok(vec![TokenType::Punctuator(Punctuator::And)]));
     assert_eq!(js_parser_rs::parse("**".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Exp)]));
     assert_eq!(js_parser_rs::parse("**=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ExpAssign)]));
+    assert_eq!(js_parser_rs::parse("+-f".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Plus),TokenType::Punctuator(Punctuator::Minus),TokenType::SymbolLiteral(String::from("f"))]));
 
     assert_eq!(js_parser_rs::parse("..".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Point),TokenType::Punctuator(Punctuator::Point)]));
 }
@@ -111,7 +114,11 @@ fn test_punctuator() {
 #[test]
 fn test_raw() {
     assert_eq!(js_parser_rs::parse("Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello=".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Equal)]));
+    assert_eq!(js_parser_rs::parse("Hello('sd'".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::LeftParen),TokenType::Literal(LiteralType::String(String::from("sd")))]));
+    assert_eq!(js_parser_rs::parse("Hello|Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::OrBitwise),TokenType::SymbolLiteral(String::from("Hello"))]));
     assert_eq!(js_parser_rs::parse("Hello.Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Point),TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello/Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::Punctuator(Punctuator::Divide),TokenType::SymbolLiteral(String::from("Hello"))]));
 }
 
 #[test]
@@ -151,15 +158,21 @@ fn test_keyword() {
 #[test]
 fn test_terminate() {
     assert_eq!(js_parser_rs::parse("\n".chars()), Ok(vec![TokenType::LineTerminate]));
+    assert_eq!(js_parser_rs::parse("\r".chars()), Ok(vec![TokenType::LineTerminate]));
     assert_eq!(js_parser_rs::parse("\n ;".chars()), Ok(vec![TokenType::LineTerminate,TokenType::Semicolon]));
 }
 
 #[test]
 fn test_regex() {
     assert_eq!(js_parser_rs::parse("= /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("( /ab+b/g)".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftParen), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Punctuator(Punctuator::RightParen)]));
     assert_eq!(js_parser_rs::parse("= /ab+b/;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::None),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse(": /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DoublePoint), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse(", /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]))
+    assert_eq!(js_parser_rs::parse(", /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(", /*a*/ /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::CommentLiteral(String::from("a")), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(", /ab\\/b/g".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab/b"), RegexIdentifier::Global)]));
+    assert_eq!(js_parser_rs::parse(", /ab\\\\b/g".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab\\b"), RegexIdentifier::Global)]));
+    assert_eq!(js_parser_rs::parse(", /^h\\d$/i".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("^h\\d$"), RegexIdentifier::Ignore)]));
 }
 
 #[test]
@@ -172,6 +185,20 @@ fn test_comment() {
     assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello * ")),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::LineTerminate,TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse("/*Hello \n;*/".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello \n;"))]));
+    //assert_eq!(js_parser_rs::parse("// IE \\r a".chars()), Ok(vec![TokenType::CommentLiteral(String::from(" IE \r a"))]));
+}
+
+
+
+#[test]
+#[should_panic]
+fn sould_panic_number() {
+    println!("{:?}", js_parser_rs::parse("0o394".chars()));
+}
+#[test]
+#[should_panic]
+fn sould_panic_string() {
+    println!("{:?}", js_parser_rs::parse("\"sdfsd".chars()));
 }
 
 #[test]

@@ -10,7 +10,9 @@ pub struct LexerState {
     tmp: String,
     escaped: bool,
     last_char: Option<char>,
-    current_char: Option<char>
+    current_char: Option<char>,
+    col: i64,
+    line: i64
 }
 
 impl LexerState {
@@ -23,8 +25,18 @@ impl LexerState {
             escaped: false,
             last_char: None,
             last_token: None,
-            current_char: None
+            current_char: None,
+            col: 0,
+            line: 0
         }
+    }
+
+    pub fn col(&mut self) -> i64 {
+        self.col
+    }
+
+    pub fn line(&mut self) -> i64 {
+        self.line
     }
 
     pub fn escaped(&mut self, e: bool) {
@@ -50,6 +62,15 @@ impl LexerState {
     pub fn next_char(&mut self) -> Option<char> {
         self.last_char = self.current_char;
         let char = self.input.next();
+        match char {
+            Some('\n') => {
+                self.line += 1;
+                self.col = 0;
+            }
+            _ => {
+                self.col += 1;
+            }
+        }
         self.current_char = char;
         char
     }
@@ -75,7 +96,12 @@ impl LexerState {
     }
 
     pub fn push(&mut self, t: TokenType) {
-        self.last_token = Some(t.clone());
+        match t {
+            TokenType::CommentLiteral(_) => (),
+            _ => {
+                self.last_token = Some(t.clone())
+            }
+        }
         self.tokens.push(t)
     }
 

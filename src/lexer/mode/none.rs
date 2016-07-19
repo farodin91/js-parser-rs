@@ -1,79 +1,72 @@
-use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, RegexState};
+use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, StringType};
 use lexer::state::{LexerState};
 
 impl LexerState {
     fn start_punctuator(&mut self, t: Punctuator) {
         self.update(LexerMode::Punctuator(t, 0));
     }
-}
 
-pub fn exec(state: &mut LexerState, c: Option<char>) -> bool {
-    match c {
-        Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
-            state.update(LexerMode::Raw);
-            state.reset_tmp();
-            state.tmp_push(c.unwrap());
-        }
-        Some('"') => {
-            state.update(LexerMode::String);
-            state.reset_tmp();
-        }
-        Some('0') => {
-            state.update(LexerMode::Number(NumberType::None));
-            state.reset_tmp();
-            state.tmp_push(c.unwrap());
-        }
-        Some('1'...'9') => {
-            state.update(LexerMode::Number(NumberType::NoneLiteral));
-            state.reset_tmp();
-            state.tmp_push(c.unwrap());
-        }
-        Some(' ') => (),
-        Some('\n') => state.push(TokenType::LineTerminate),
-        Some(';') => state.push(TokenType::Semicolon),
-        Some(',') => state.push(TokenType::Comma),
-        Some('{') => state.push(TokenType::Punctuator(Punctuator::LeftBrace)),
-        Some('}') => state.push(TokenType::Punctuator(Punctuator::RightBrace)),
-        Some('[') => state.push(TokenType::Punctuator(Punctuator::LeftBracket)),
-        Some(']') => state.push(TokenType::Punctuator(Punctuator::RightBracket)),
-        Some('(') => state.push(TokenType::Punctuator(Punctuator::LeftParen)),
-        Some(')') => state.push(TokenType::Punctuator(Punctuator::RightParen)),
-        Some('~') => state.push(TokenType::Punctuator(Punctuator::Tilde)),
-        Some(':') => state.push(TokenType::Punctuator(Punctuator::DoublePoint)),
-        Some('?') => state.push(TokenType::Punctuator(Punctuator::QuestionMark)),
-        Some('.') => state.start_punctuator(Punctuator::Point),
-        Some('|') => state.start_punctuator(Punctuator::OrBitwise),
-        Some('*') => state.start_punctuator(Punctuator::Multiple),
-        Some('&') => state.start_punctuator(Punctuator::AndBitwise),
-        Some('^') => state.start_punctuator(Punctuator::Xor),
-        Some('+') => state.start_punctuator(Punctuator::Plus),
-        Some('-') => state.start_punctuator(Punctuator::Minus),
-        Some('%') => state.start_punctuator(Punctuator::Mod),
-        Some('=') => state.start_punctuator(Punctuator::Equal),
-        Some('<') => state.start_punctuator(Punctuator::SmallThan),
-        Some('/') => {
-            let last_token = state.last_token();
-            match last_token {
-                Some(TokenType::Punctuator(Punctuator::DoublePoint)) |
-                Some(TokenType::Punctuator(Punctuator::Equal)) |
-                Some(TokenType::Comma) => {
-                    state.update(LexerMode::Regex(RegexState::Normal));
-                    state.reset_tmp()
-                }
-                _ => {
-                    state.start_punctuator(Punctuator::Divide)
-                }
+    pub fn parse_normal(&mut self, c: Option<char>) -> bool {
+        match c {
+            Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
+                self.update(LexerMode::Raw);
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
             }
-        },
-        Some('!') => state.start_punctuator(Punctuator::Invert),
-        Some('>') => state.start_punctuator(Punctuator::GreaterThan),
-        None => {
-            state.update(LexerMode::EOF)
+            Some('"') => {
+                self.update(LexerMode::String(StringType::DoubleQuote));
+                self.reset_tmp();
+            }
+            Some('\'') => {
+                self.update(LexerMode::String(StringType::SingleQuote));
+                self.reset_tmp();
+            }
+            Some('0') => {
+                self.update(LexerMode::Number(NumberType::None));
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
+            }
+            Some('1'...'9') => {
+                self.update(LexerMode::Number(NumberType::NoneLiteral));
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
+            }
+            Some('\n') => self.push(TokenType::LineTerminate),
+            Some('\r') => self.push(TokenType::LineTerminate),
+            Some(' ') => (),
+            Some('\t') => (),
+            Some(';') => self.push(TokenType::Semicolon),
+            Some(',') => self.push(TokenType::Comma),
+            Some('{') => self.push(TokenType::Punctuator(Punctuator::LeftBrace)),
+            Some('}') => self.push(TokenType::Punctuator(Punctuator::RightBrace)),
+            Some('[') => self.push(TokenType::Punctuator(Punctuator::LeftBracket)),
+            Some(']') => self.push(TokenType::Punctuator(Punctuator::RightBracket)),
+            Some('(') => self.push(TokenType::Punctuator(Punctuator::LeftParen)),
+            Some(')') => self.push(TokenType::Punctuator(Punctuator::RightParen)),
+            Some('~') => self.push(TokenType::Punctuator(Punctuator::Tilde)),
+            Some(':') => self.push(TokenType::Punctuator(Punctuator::DoublePoint)),
+            Some('?') => self.push(TokenType::Punctuator(Punctuator::QuestionMark)),
+            Some('.') => self.start_punctuator(Punctuator::Point),
+            Some('|') => self.start_punctuator(Punctuator::OrBitwise),
+            Some('*') => self.start_punctuator(Punctuator::Multiple),
+            Some('&') => self.start_punctuator(Punctuator::AndBitwise),
+            Some('^') => self.start_punctuator(Punctuator::Xor),
+            Some('+') => self.start_punctuator(Punctuator::Plus),
+            Some('-') => self.start_punctuator(Punctuator::Minus),
+            Some('%') => self.start_punctuator(Punctuator::Mod),
+            Some('=') => self.start_punctuator(Punctuator::Equal),
+            Some('<') => self.start_punctuator(Punctuator::SmallThan),
+            Some('/') => self.start_punctuator(Punctuator::Divide),
+            Some('!') => self.start_punctuator(Punctuator::Invert),
+            Some('>') => self.start_punctuator(Punctuator::GreaterThan),
+            None => {
+                self.update(LexerMode::EOF)
+            }
+            _ => {
+                panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                //self.update(LexerMode::EOF);
+            }
         }
-        _ => {
-            state.update(LexerMode::EOF);
-            println!("Unhandled Parser State Reached: {:?}, {:?}, {:?}", c, state.mode(), state.is_escaped());
-        }
+        true
     }
-    true
 }
