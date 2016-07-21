@@ -1,4 +1,5 @@
 use lexer::enums::{TokenType, LexerMode};
+use error::error::Error;
 use std::char;
 
 pub type LexerStateIterator = Box<Iterator<Item = char>>;
@@ -12,8 +13,8 @@ pub struct LexerState {
     escaped: bool,
     last_char: Option<char>,
     current_char: Option<char>,
-    col: i64,
-    line: i64
+    col: u64,
+    line: u64
 }
 
 impl LexerState {
@@ -32,7 +33,7 @@ impl LexerState {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<TokenType>, ()> {
+    pub fn parse(&mut self) -> Result<Vec<TokenType>, Error> {
         loop {
             self.next_char();
             let mut done = false; // mut done: bool
@@ -44,7 +45,7 @@ impl LexerState {
                     LexerMode::String(_) => self.parse_string(),
                     LexerMode::Punctuator(t, i) => self.parse_punctuator(c, t, i),
                     LexerMode::Number(_) => self.parse_number(),
-                    LexerMode::Comment(t) => self.parse_comment(c, t),
+                    LexerMode::Comment(_) => self.parse_comment(),
                     LexerMode::Raw => self.parse_raw(),
                     LexerMode::Regex(_) => self.parse_regex(),
                     LexerMode::EOF => true
@@ -82,11 +83,11 @@ impl LexerState {
         self.current_char = Some(c)
     }
 
-    pub fn col(&mut self) -> i64 {
+    pub fn col(&mut self) -> u64 {
         self.col
     }
 
-    pub fn line(&mut self) -> i64 {
+    pub fn line(&mut self) -> u64 {
         self.line
     }
 
