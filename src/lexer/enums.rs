@@ -14,6 +14,7 @@ pub enum CommentType {
     MultiLineEnd,
     MultiLineNormal
 }
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum StringType {
     SingleQuote,

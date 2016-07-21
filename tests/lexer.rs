@@ -118,6 +118,8 @@ fn test_punctuator() {
 #[test]
 fn test_raw() {
     assert_eq!(js_parser_rs::parse("Hello".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
+    assert_eq!(js_parser_rs::parse("Hello\n".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::LineTerminate]));
+    assert_eq!(js_parser_rs::parse("Hello\r".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello")),TokenType::LineTerminate]));
     assert_eq!(js_parser_rs::parse("Hello\u{a0}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
     //assert_eq!(js_parser_rs::parse("Hello\u{9}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));
     assert_eq!(js_parser_rs::parse("Hello\u{b}".chars()), Ok(vec![TokenType::SymbolLiteral(String::from("Hello"))]));

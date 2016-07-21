@@ -32,10 +32,36 @@ impl LexerState {
         }
     }
 
+    pub fn parse(&mut self) -> Result<Vec<TokenType>, ()> {
+        loop {
+            self.next_char();
+            let mut done = false; // mut done: bool
+            while !done {
+                let mode = self.mode();
+                let c = self.current_char();
+                done = match mode {
+                    LexerMode::None => self.parse_normal(c),
+                    LexerMode::String(_) => self.parse_string(),
+                    LexerMode::Punctuator(t, i) => self.parse_punctuator(c, t, i),
+                    LexerMode::Number(_) => self.parse_number(),
+                    LexerMode::Comment(t) => self.parse_comment(c, t),
+                    LexerMode::Raw => self.parse_raw(),
+                    LexerMode::Regex(_) => self.parse_regex(),
+                    LexerMode::EOF => true
+                }
+            }
+            if self.mode() == LexerMode::EOF {
+                break;
+            }
+        }
+        let tokens = self.tokens();
+        Ok(tokens)
+    }
+
     pub fn read_unicode(&mut self) -> Option<char> {
-        let indicated = self.next_char().unwrap();
+        let indicated = self.next_char();
         match indicated {
-            'u' => {
+            Some('u') => {
                 let mut tmp = String::new();
                 let a1 = self.next_char().unwrap();
                 tmp.push(a1);
@@ -51,7 +77,7 @@ impl LexerState {
             _ => None
         }
     }
-    pub fn overwrite_current_char(&mut self, c: char){
+    pub fn overwrite_current_char(&mut self, c: char) {
         self.last_char = self.current_char;
         self.current_char = Some(c)
     }

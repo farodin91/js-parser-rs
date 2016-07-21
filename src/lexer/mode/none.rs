@@ -38,7 +38,7 @@ impl LexerState {
             Some('\t') |
             Some('\u{c}') |
             Some('\u{b}') |
-            Some('\u{a0}')  => (),
+            Some('\u{a0}') => (),
             Some(';') => self.push(TokenType::Semicolon),
             Some(',') => self.push(TokenType::Comma),
             Some('{') => self.push(TokenType::Punctuator(Punctuator::LeftBrace)),
@@ -70,7 +70,7 @@ impl LexerState {
                 let unicode = self.read_unicode();
                 match unicode {
                     Some(c) => {
-                        println!("{:?}",c);
+                        println!("{:?}", c);
                         self.overwrite_current_char(c);
                         handled = false
                     }

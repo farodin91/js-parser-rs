@@ -51,13 +51,11 @@ impl LexerState {
             let c = self.current_char();
             match c {
                 Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') | Some('0' ... '9') => {
-                    println!("{:?}",c);
                     self.tmp_push(c.unwrap());
                     handled = true
                 }
                 Some(' ') |
                 Some('\t') |
-                Some('\n') |
                 Some('\u{c}') |
                 Some('\u{b}') |
                 Some('\u{a0}') |
@@ -65,6 +63,8 @@ impl LexerState {
                     self.raw();
                     handled = true
                 }
+                Some('\r') |
+                Some('\n') |
                 Some(':') |
                 Some('*') |
                 Some('+') |
