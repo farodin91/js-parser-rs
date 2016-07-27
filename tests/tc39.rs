@@ -1,5 +1,7 @@
 extern crate js_parser_rs;
 
+use js_parser_rs::JsContext;
+use js_parser_rs::error::error::ErrorType;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -13145,43 +13147,27 @@ fn parse(file: &str) {
     File::open(file).ok().unwrap().read_to_string(&mut js).ok();
 
     // || js.contains("es6id") || js.contains("arrow-function")
-    if js.contains("negative: SyntaxError") || js.contains("negative: ReferenceError") {
-        println!("{:?} File exclued", file);
+    if js.contains("negative: ReferenceError") {
+        println!("{:?} File excluded", file);
         return
     }
-    js_parser_rs::parse(OwningChars::new(js)).unwrap();
-    //let mut ctx = IrCon || js.contains("es6id") || js.contains("arrow-function")text::new();
-    //ctx.parse_string(&js, false, ParseMode::Normal, false).ok();
-
-    //ctx.print_ir(&mut String::new()).ok();
-}
-
-#[allow(dead_code)]
-struct OwningChars {
-    s: String,
-    pos: usize
-}
-
-#[allow(dead_code)]
-impl OwningChars {
-    pub fn new(s: String) -> OwningChars {
-        OwningChars { s: s, pos: 0 }
-    }
-}
-
-#[allow(dead_code)]
-impl Iterator for OwningChars {
-    type Item = char;
-    fn next(&mut self) -> Option<char> {
-        if let Some(c) = self.s[self.pos..].chars().next() {
-            self.pos += c.len_utf8();
-            Some(c)
-        } else {
-            None
+    let syntax = if js.contains("negative: SyntaxError") && !js.contains("eval") {
+        false
+    } else {
+        true
+    };
+    let context = &mut JsContext::new();
+    let chars = context.parse(js);
+    match chars {
+        Err(ErrorType::SyntaxError(t)) => {
+            if syntax {
+                panic!("assert {:?}", t)
+            }
+        },
+        t => {
+            if !syntax {
+                panic!("assert {:?}", t)
+            }
         }
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.s.len() - self.pos;
-        ((len + 3) / 4, Some(len)) // see the Chars impl for detail
     }
 }

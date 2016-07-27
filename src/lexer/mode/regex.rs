@@ -1,5 +1,7 @@
+use error::error::Error;
 use lexer::enums::{LexerMode, RegexState, TokenType, RegexIdentifier};
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
     fn regex(&mut self, t: RegexIdentifier) {
@@ -8,7 +10,7 @@ impl LexerState {
         self.update(LexerMode::None);
     }
 
-    pub fn parse_regex(&mut self) -> bool {
+    pub fn parse_regex(&mut self) -> Result<bool, Error> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -78,6 +80,7 @@ impl LexerState {
                 self.next_char();
             }
         }
-        handled
+        Ok(handled)
+
     }
 }

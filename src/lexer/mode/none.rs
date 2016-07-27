@@ -1,12 +1,14 @@
+use error::error::{Error, ErrorType, SyntaxErrorType};
 use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, StringType};
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
     fn start_punctuator(&mut self, t: Punctuator) {
         self.update(LexerMode::Punctuator(t, 0));
     }
 
-    pub fn parse_normal(&mut self, c: Option<char>) -> bool {
+    pub fn parse_normal(&mut self, c: Option<char>) -> Result<bool, Error> {
         let mut handled = true;
         match c {
             Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
@@ -38,7 +40,13 @@ impl LexerState {
             Some('\t') |
             Some('\u{c}') |
             Some('\u{b}') |
-            Some('\u{a0}') => (),
+            Some('\u{a0}') => {
+                if self.last_char_is_unicode() {
+                    let c = self.current_char();
+                    let err = self.error(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedChar(c.unwrap())));
+                    return Err(err);
+                }
+            },
             Some(';') => self.push(TokenType::Semicolon),
             Some(',') => self.push(TokenType::Comma),
             Some('{') => self.push(TokenType::Punctuator(Punctuator::LeftBrace)),
@@ -71,7 +79,7 @@ impl LexerState {
                 match unicode {
                     Some(c) => {
                         println!("{:?}", c);
-                        self.overwrite_current_char(c);
+                        self.overwrite_current_char_with_unicode(c);
                         handled = false
                     }
                     _ => {
@@ -84,6 +92,6 @@ impl LexerState {
                 //self.update(LexerMode::EOF);
             }
         }
-        handled
+        Ok(handled)
     }
 }

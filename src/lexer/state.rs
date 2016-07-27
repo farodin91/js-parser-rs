@@ -1,19 +1,21 @@
 use lexer::enums::{TokenType, LexerMode};
-use error::error::Error;
+use lexer::token::Token;
+use error::error::{Error, ErrorType};
 use std::char;
 
 pub type LexerStateIterator = Box<Iterator<Item = char>>;
 
 pub struct LexerState {
     input: LexerStateIterator,
-    tokens: Vec<TokenType>,
+    tokens: Vec<Token>,
     last_token: Option<TokenType>,
     mode: LexerMode,
     tmp: String,
     escaped: bool,
     last_char: Option<char>,
     current_char: Option<char>,
-    col: u64,
+    last_char_is_unicode: bool,
+    col: u32,
     line: u64
 }
 
@@ -26,6 +28,7 @@ impl LexerState {
             tmp: String::new(),
             escaped: false,
             last_char: None,
+            last_char_is_unicode: false,
             last_token: None,
             current_char: None,
             col: 0,
@@ -33,14 +36,14 @@ impl LexerState {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<TokenType>, Error> {
+    pub fn parse(&mut self) -> Result<Vec<Token>, Error> {
         loop {
             self.next_char();
             let mut done = false; // mut done: bool
             while !done {
                 let mode = self.mode();
                 let c = self.current_char();
-                done = match mode {
+                let result = match mode {
                     LexerMode::None => self.parse_normal(c),
                     LexerMode::String(_) => self.parse_string(),
                     LexerMode::Punctuator(t, i) => self.parse_punctuator(c, t, i),
@@ -48,7 +51,13 @@ impl LexerState {
                     LexerMode::Comment(_) => self.parse_comment(),
                     LexerMode::Raw => self.parse_raw(),
                     LexerMode::Regex(_) => self.parse_regex(),
-                    LexerMode::EOF => true
+                    LexerMode::EOF => Ok(true)
+                };
+                done = match result {
+                    Ok(t) => t,
+                    Err(err) => {
+                        return Err(err)
+                    }
                 }
             }
             if self.mode() == LexerMode::EOF {
@@ -73,17 +82,32 @@ impl LexerState {
                 let a1 = self.next_char().unwrap();
                 tmp.push(a1);
                 let i = u32::from_str_radix(&tmp, 16).unwrap();
+                self.last_char_is_unicode = true;
                 char::from_u32(i)
             },
             _ => None
         }
     }
-    pub fn overwrite_current_char(&mut self, c: char) {
+
+    pub fn last_char_is_unicode(&mut self) -> bool {
+        self.last_char_is_unicode
+    }
+
+    pub fn set_last_char_is_unicode(&mut self, e: bool) {
+        self.last_char_is_unicode= e
+    }
+
+    pub fn error(&mut self, t: ErrorType) -> Error {
+        Error::new(t, self.col, self.line, None)
+    }
+
+    pub fn overwrite_current_char_with_unicode(&mut self, c: char) {
         self.last_char = self.current_char;
+        self.last_char_is_unicode = true;
         self.current_char = Some(c)
     }
 
-    pub fn col(&mut self) -> u64 {
+    pub fn col(&mut self) -> u32 {
         self.col
     }
 
@@ -123,6 +147,7 @@ impl LexerState {
                 self.col += 1;
             }
         }
+        self.last_char_is_unicode = false;
         self.current_char = char;
         char
     }
@@ -154,10 +179,11 @@ impl LexerState {
                 self.last_token = Some(t.clone())
             }
         }
-        self.tokens.push(t)
+        let token = Token::new(t, self.col, self.line);
+        self.tokens.push(token)
     }
 
-    pub fn tokens(&self) -> Vec<TokenType> {
+    pub fn tokens(&self) -> Vec<Token> {
         self.tokens.clone()
     }
 }

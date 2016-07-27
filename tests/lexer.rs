@@ -1,6 +1,7 @@
 extern crate js_parser_rs;
 
 use js_parser_rs::lexer::enums::{TokenType, Punctuator, Keyword, LiteralType, RegexIdentifier};
+use js_parser_rs::error::error::{ErrorType, SyntaxErrorType};
 use std::fs::File;
 use std::io::Read;
 
@@ -33,6 +34,7 @@ fn test_white_spaces() {
 fn test_useless_string() {
     assert_eq!(js_parser_rs::parse("+ \"-\\f]' ms=''>\" +\n".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Plus),TokenType::Literal(LiteralType::String(String::from("-\\f]' ms=''>"))),TokenType::Punctuator(Punctuator::Plus),TokenType::LineTerminate]));
     assert_eq!(js_parser_rs::parse("\"Hello World!\"".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
+    assert_eq!(js_parser_rs::parse("\"Hello".chars()), Err(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOF)));
     assert_eq!(js_parser_rs::parse("\"Hel{}\" \"Hello World!\"".chars()),Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hel{}"))),TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
     assert_eq!(js_parser_rs::parse("\"Hello\\\" World!\"".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello\" World!")))]));
     assert_eq!(js_parser_rs::parse("'Hello World!'".chars()), Ok(vec![TokenType::Literal(LiteralType::String(String::from("Hello World!")))]));
@@ -207,12 +209,6 @@ fn test_comment() {
 #[should_panic]
 fn sould_panic_number() {
     println!("{:?}", js_parser_rs::parse("0o394".chars()));
-}
-
-#[test]
-#[should_panic]
-fn sould_panic_string() {
-    println!("{:?}", js_parser_rs::parse("\"sdfsd".chars()));
 }
 
 #[test]

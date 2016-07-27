@@ -1,9 +1,11 @@
+use error::error::{Error, ErrorType, SyntaxErrorType};
 use lexer::enums::{LexerMode, TokenType, LiteralType};
 use lexer::enums::StringType::*;
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
-    pub fn parse_string(&mut self) -> bool {
+    pub fn parse_string(&mut self) -> Result<bool, Error> {
         loop {
             let escaped = self.is_escaped();
             let c = self.current_char();
@@ -48,8 +50,8 @@ impl LexerState {
                     self.tmp_push(x)
                 }
                 (None, _, _) => {
-                    panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}, last: {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line(), self.tokens());
-                    //self.update(LexerMode::EOF)
+                    let err = self.error(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOF));
+                    return Err(err);
                 }
             }
             if self.mode() == LexerMode::None {
@@ -57,6 +59,6 @@ impl LexerState {
             }
             self.next_char();
         }
-        true
+        Ok(true)
     }
 }

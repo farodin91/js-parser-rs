@@ -1,5 +1,7 @@
+use error::error::Error;
 use lexer::enums::{LexerMode, TokenType, Keyword, LiteralType};
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
     fn raw(&mut self) {
@@ -45,7 +47,7 @@ impl LexerState {
         self.push(token);
     }
 
-    pub fn parse_raw(&mut self) -> bool {
+    pub fn parse_raw(&mut self) -> Result<bool, Error> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -61,7 +63,7 @@ impl LexerState {
                 Some('\u{a0}') |
                 None => {
                     self.raw();
-                    handled = true
+                    handled = false
                 }
                 Some('\r') |
                 Some('\n') |
@@ -94,7 +96,7 @@ impl LexerState {
                     let unicode = self.read_unicode();
                     match unicode {
                         Some(c) => {
-                            self.overwrite_current_char(c);
+                            self.overwrite_current_char_with_unicode(c);
                             handled = false
                         }
                         _ => {
@@ -115,6 +117,6 @@ impl LexerState {
                 self.next_char();
             }
         }
-        handled
+        Ok(handled)
     }
 }

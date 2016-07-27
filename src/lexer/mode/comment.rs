@@ -1,5 +1,7 @@
+use error::error::Error;
 use lexer::enums::{LexerMode, CommentType, TokenType};
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
     fn comment(&mut self) {
@@ -8,7 +10,7 @@ impl LexerState {
         self.update(LexerMode::None);
     }
 
-    pub fn parse_comment(&mut self) -> bool {
+    pub fn parse_comment(&mut self) -> Result<bool, Error> {
         loop {
             let c = self.current_char();
             let t = match self.mode() {
@@ -61,6 +63,6 @@ impl LexerState {
             }
             self.next_char();
         }
-        true
+        Ok(true)
     }
 }

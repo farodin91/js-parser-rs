@@ -1,5 +1,7 @@
+use error::error::Error;
 use lexer::enums::{LexerMode, TokenType, Punctuator, CommentType, RegexState};
 use lexer::state::{LexerState};
+use std::result::Result;
 
 impl LexerState {
     fn punctuator(&mut self, t: Punctuator) {
@@ -11,8 +13,8 @@ impl LexerState {
         self.update(LexerMode::Punctuator(t, i));
     }
 
-    pub fn parse_punctuator(&mut self, c: Option<char>, t: Punctuator, i: i32) -> bool {
-        match (c, t) {
+    pub fn parse_punctuator(&mut self, c: Option<char>, t: Punctuator, i: i32) -> Result<bool, Error> {
+        let handled = match (c, t) {
             (Some('<'), Punctuator::SmallThan) => {
                 self.mode_punctuator(Punctuator::LeftShift, 0);
                 true
@@ -164,6 +166,7 @@ impl LexerState {
                 self.punctuator(t);
                 false
             }
-        }
+        };
+        Ok(handled)
     }
 }

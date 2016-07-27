@@ -1,5 +1,7 @@
+use error::error::Error;
 use lexer::enums::{LexerMode, NumberType, TokenType, LiteralType};
 use lexer::state::{LexerState};
+use std::result::Result;
 use std::str::FromStr;
 
 impl LexerState {
@@ -8,7 +10,7 @@ impl LexerState {
         self.update(LexerMode::None);
     }
 
-    pub fn parse_number(&mut self) -> bool {
+    pub fn parse_number(&mut self) -> Result<bool, Error> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -84,6 +86,6 @@ impl LexerState {
                 self.next_char();
             }
         }
-        handled
+        Ok(handled)
     }
 }
