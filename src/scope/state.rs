@@ -10,6 +10,46 @@ pub enum IterationStatementPosition {
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
+pub enum IterationType {
+    DoWhile,
+    While,
+    For
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum TryStatementPosition {
+    Try,
+    None
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum StatementPosition {
+    Initial,
+    None
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum FunctionStatementPosition {
+    Function,
+    Symbol,
+    None
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum IfStatementPosition {
+    If,
+    Else,
+    ElseIf,
+    None
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum WithStatementPosition {
+    With,
+    None
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum DeclareVariablePosition {
     Symbol,
     AssignmentExpression,
@@ -20,7 +60,11 @@ pub enum DeclareVariablePosition {
 pub enum CurrentState {
     String,
     DeclareVariable(DeclareVariablePosition),
-    IterationStatement(IterationStatementPosition),
+    IterationStatement(IterationType),
+    If,
+    With,
+    Function,
+    Try,
     None
 }
 
@@ -46,25 +90,7 @@ impl JsScope {
     pub fn from_tokens(tokens: Vec<Token>) -> Result<(), Error> {
         let iter = Box::new(tokens.into_iter());
         let scope = &mut JsScope::new(iter);
-        loop {
-            let result = match scope.state {
-                CurrentState::IterationStatement(pos) => {
-                    scope.handle_iteration_statement(pos)
-                }
-                CurrentState::DeclareVariable(pos) => {
-                    scope.handle_declare_variable(pos)
-                }
-                _ => {
-                    scope.handle_token()
-                }
-            };
-            match result {
-                Ok(true) => (),
-                Ok(false) => break,
-                Err(err) => { return Err(err) }
-            }
-        }
-        Ok(())
+        scope.handle_block(false)
     }
 
     fn handle_declare_variable(&mut self, pos: DeclareVariablePosition) -> Result<bool, Error> {
@@ -78,7 +104,7 @@ impl JsScope {
                     break
                 }
             };
-            //println!("scope {:?} {:?}", self.state, token);
+            println!("handle_declare_variable {:?} {:?}", pos, token);
             let token_type = token.clone().token;
             match (token_type.clone(), current_pos) {
                 (TokenType::SymbolLiteral(_), DeclareVariablePosition::None) => {
@@ -103,9 +129,9 @@ impl JsScope {
         Ok(handled)
     }
 
-    fn handle_iteration_statement(&mut self, pos: IterationStatementPosition) -> Result<bool, Error> {
+    fn handle_expression_statement(&mut self) -> Result<bool, Error> {
         let mut handled = true;
-        let mut current_pos = pos;
+        let mut i = 1;
         loop {
             let token = match self.next_token() {
                 Some(t) => t,
@@ -114,23 +140,60 @@ impl JsScope {
                     break
                 }
             };
-            //println!("scope {:?} {:?}", self.state, token);
+            println!("handle_expression_statement {:?}", token);
             let token_type = token.clone().token;
-            match (token_type.clone(), current_pos) {
-                (TokenType::LineTerminate, _) => (),
-                (TokenType::Punctuator(Punctuator::LeftParen), IterationStatementPosition::None) => {
-                    self.state = CurrentState::IterationStatement(IterationStatementPosition::Expression);
-                    current_pos = IterationStatementPosition::Expression
+            match token_type.clone() {
+                TokenType::Punctuator(Punctuator::LeftParen) => {
+                    i += 1;
                 }
-                (TokenType::Punctuator(Punctuator::RightParen), IterationStatementPosition::Expression) => {
-                    self.state = CurrentState::None;
+                TokenType::Punctuator(Punctuator::RightParen) => {
+                    i -= 1;
+                    if i == 0 {
+                        break;
+                    }
+                }
+                //TokenType::Punctuator(Punctuator::LeftBrace) => {
+                //    let (line, col) = token.location();
+                //    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                //}
+                _ => ()
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_if_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
                     break
                 }
-                (TokenType::Punctuator(Punctuator::LeftBrace), IterationStatementPosition::Expression) => {
-                    let (line, col) = token.location();
-                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
-                },
-                (_, IterationStatementPosition::Expression) => (),
+            };
+            println!("handle_if_statement {:?}", token);
+            let token_type = token.clone().token;
+            match token_type.clone() {
+                TokenType::LineTerminate => (),
+                TokenType::CommentLiteral(_) => (),
+                TokenType::Punctuator(Punctuator::LeftParen) => {
+                    let result = self.handle_expression_statement();
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    };
+                    let result = self.handle_statement();
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
                 _ => {
                     let (line, col) = token.location();
                     return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
@@ -140,7 +203,338 @@ impl JsScope {
         Ok(handled)
     }
 
-    fn handle_token(&mut self) -> Result<bool, Error> {
+    fn handle_with_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_with_statement {:?}", token);
+            let token_type = token.clone().token;
+            match token_type.clone() {
+                TokenType::LineTerminate => (),
+                TokenType::CommentLiteral(_) => (),
+                TokenType::Punctuator(Punctuator::LeftParen) => {
+                    let result = self.handle_expression_statement();
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    };
+                    let result = self.handle_statement();
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_function_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        let mut current_pos = FunctionStatementPosition::None;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_function_statement {:?} {:?}", token, current_pos);
+            let token_type = token.clone().token;
+            match (token_type.clone(), current_pos) {
+                (TokenType::LineTerminate, _) => (),
+                (TokenType::CommentLiteral(_), _) => (),
+                (TokenType::Punctuator(Punctuator::LeftParen), FunctionStatementPosition::None) => {
+                    let result = self.handle_expression_statement();
+                    current_pos = FunctionStatementPosition::Function;
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                (TokenType::SymbolLiteral(_), FunctionStatementPosition::None) => (),
+                (TokenType::Punctuator(Punctuator::LeftBrace), FunctionStatementPosition::Function) => {
+                    let result = self.handle_block(true);
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_for_iteration_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_for_iteration_statement {:?}", token);
+            let token_type = token.clone().token;
+            match token_type.clone() {
+                TokenType::LineTerminate => (),
+                TokenType::CommentLiteral(_) => (),
+                TokenType::Punctuator(Punctuator::LeftParen) => {
+                    let result = self.handle_expression_statement();
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    };
+                    let result = self.handle_statement();
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_while_iteration_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_while_iteration_statement {:?}", token);
+            let token_type = token.clone().token;
+            match token_type.clone() {
+                TokenType::LineTerminate => (),
+                TokenType::CommentLiteral(_) => (),
+                TokenType::Punctuator(Punctuator::LeftParen) => {
+                    let result = self.handle_expression_statement();
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    };
+                    let result = self.handle_statement();
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_do_while_iteration_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        let mut waited_for_while = false;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_do_while_iteration_statement {:?}", token);
+            let token_type = token.clone().token;
+            match (token_type.clone(), waited_for_while) {
+                (TokenType::LineTerminate, _) => (),
+                (TokenType::CommentLiteral(_), _) => (),
+                (TokenType::Punctuator(Punctuator::LeftBrace), false) => {
+                    let result = self.handle_block(true);
+                    waited_for_while = true;
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                (TokenType::Keyword(Keyword::While), true) => {
+                    self.state = CurrentState::None;
+                    break
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_try_statement(&mut self) -> Result<bool, Error> {
+        let mut handled = true;
+        let mut current_pos = TryStatementPosition::None;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    handled = false;
+                    break
+                }
+            };
+            println!("handle_try_statement {:?}", token);
+            let token_type = token.clone().token;
+            match (token_type.clone(), current_pos) {
+                (TokenType::LineTerminate, _) => (),
+                (TokenType::Punctuator(Punctuator::LeftBrace), TryStatementPosition::None) => {
+                    let result = self.handle_block(true);
+                    current_pos = TryStatementPosition::Try;
+                    match result {
+                        Ok(_) => (),
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                (TokenType::Keyword(Keyword::Catch), TryStatementPosition::Try) => {
+                    self.state = CurrentState::None;
+                    break
+                },
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(handled)
+    }
+
+    fn handle_statement(&mut self) -> Result<(), Error> {
+        let mut line = 0;
+        loop {
+            let token = match self.next_token() {
+                Some(t) => t,
+                None => {
+                    return Ok(())
+                }
+            };
+            println!("handle_statement {:?} {:?}", token, line);
+            let token_type = token.clone().token;
+            match (token_type.clone(), line) {
+                (TokenType::LineTerminate, _) => {
+                    line += 1;
+                },
+                (TokenType::CommentLiteral(_), _) => (),
+                (TokenType::Punctuator(Punctuator::LeftBrace), _) => {
+                    let result = self.handle_block(true);
+                    self.state = CurrentState::None;
+                    match result {
+                        Ok(_) => break,
+                        Err(t) => {
+                            return Err(t)
+                        }
+                    }
+                }
+                (TokenType::SymbolLiteral(_), 0 ... 1) => {
+                    self.state = CurrentState::None;
+                    break
+                }
+                (TokenType::Keyword(Keyword::Break), 0 ... 1) => {
+                    self.state = CurrentState::None;
+                    break
+                }
+                _ => {
+                    let (line, col) = token.location();
+                    return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token_type)), col, line, None))
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_block(&mut self, internal: bool) -> Result<(), Error> {
+        self.state = CurrentState::None;
+        println!("handle_block_statement {:?} {:?}", self.state, internal);
+        loop {
+            let result = match self.state {
+                CurrentState::IterationStatement(IterationType::While) => {
+                    self.handle_while_iteration_statement()
+                }
+                CurrentState::IterationStatement(IterationType::For) => {
+                    self.handle_for_iteration_statement()
+                }
+                CurrentState::DeclareVariable(pos) => {
+                    self.handle_declare_variable(pos)
+                }
+                CurrentState::Try => {
+                    self.handle_try_statement()
+                }
+                CurrentState::If => {
+                    self.handle_if_statement()
+                }
+                CurrentState::With => {
+                    self.handle_with_statement()
+                }
+                CurrentState::IterationStatement(IterationType::DoWhile) => {
+                    self.handle_do_while_iteration_statement()
+                }
+                CurrentState::Function => {
+                    self.handle_function_statement()
+                }
+                _ => {
+                    self.handle_token(internal)
+                }
+            };
+            match result {
+                Ok(true) => (),
+                Ok(false) => break,
+                Err(err) => { return Err(err) }
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_token(&mut self, internal: bool) -> Result<bool, Error> {
         let token = match self.next_token() {
             Some(t) => t,
             None => {
@@ -149,6 +543,7 @@ impl JsScope {
         };
         let (line, col) = token.location();
         let token = token.token;
+        //println!("handle_token {:?} {:?}", self.state, token);
         match (token.clone(), self.state) {
             (TokenType::Literal(LiteralType::String(_)), CurrentState::None) => {
                 self.state = CurrentState::String
@@ -156,9 +551,34 @@ impl JsScope {
             (TokenType::Keyword(Keyword::Var), _) => {
                 self.state = CurrentState::DeclareVariable(DeclareVariablePosition::None)
             }
-            (TokenType::Keyword(Keyword::While), _) => {
-                self.state = CurrentState::IterationStatement(IterationStatementPosition::None)
+            (TokenType::Keyword(Keyword::Try), CurrentState::None) => {
+                self.state = CurrentState::Try
             }
+            (TokenType::Keyword(Keyword::If), CurrentState::None) => {
+                self.state = CurrentState::If
+            }
+            (TokenType::Keyword(Keyword::With), CurrentState::None) => {
+                self.state = CurrentState::With
+            }
+            (TokenType::Keyword(Keyword::Function), CurrentState::None) => {
+                self.state = CurrentState::Function
+            }
+            (TokenType::Punctuator(Punctuator::RightBrace), CurrentState::None) => {
+                if internal {
+                    return Ok(false)
+                }
+            }
+            (TokenType::Keyword(Keyword::While), _) => {
+                self.state = CurrentState::IterationStatement(IterationType::While)
+            }
+            (TokenType::Keyword(Keyword::For), _) => {
+                self.state = CurrentState::IterationStatement(IterationType::For)
+            }
+            (TokenType::Keyword(Keyword::Do), _) => {
+                self.state = CurrentState::IterationStatement(IterationType::DoWhile)
+            }
+            (TokenType::Keyword(Keyword::Catch), CurrentState::None) |
+            (TokenType::Keyword(Keyword::Finally), CurrentState::None) |
             (TokenType::Literal(LiteralType::String(_)), CurrentState::String) => {
                 return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(token)), col, line, None))
             }
