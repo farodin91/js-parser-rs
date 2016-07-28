@@ -31,8 +31,8 @@ impl LexerState {
             last_char_is_unicode: false,
             last_token: None,
             current_char: None,
-            col: 0,
-            line: 0
+            col: 1,
+            line: 1
         }
     }
 
@@ -141,7 +141,7 @@ impl LexerState {
         match char {
             Some('\n') => {
                 self.line += 1;
-                self.col = 0;
+                self.col = 1;
             }
             _ => {
                 self.col += 1;
