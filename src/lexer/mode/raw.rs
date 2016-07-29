@@ -37,6 +37,7 @@ impl LexerState {
             "break" => TokenType::Keyword(Keyword::Break),
             "continue" => TokenType::Keyword(Keyword::Continue),
             "new" => TokenType::Keyword(Keyword::New),
+            "let" => TokenType::Keyword(Keyword::Let),
             "true" => TokenType::Literal(LiteralType::Boolean(true)),
             "false" => TokenType::Literal(LiteralType::Boolean(false)),
             "null" => TokenType::Literal(LiteralType::Null),
