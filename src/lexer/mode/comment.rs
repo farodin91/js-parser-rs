@@ -1,16 +1,16 @@
-use error::error::Error;
+use error::JsResult;
 use lexer::enums::{LexerMode, CommentType, TokenType};
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
-    fn comment(&mut self) {
+    fn comment(&mut self) -> JsResult<()> {
         let tmp = self.tmp();
-        self.push(TokenType::CommentLiteral(tmp));
+        try!(self.push(TokenType::CommentLiteral(tmp)));
         self.update(LexerMode::None);
+        Ok(())
     }
 
-    pub fn parse_comment(&mut self) -> Result<bool, Error> {
+    pub fn parse_comment(&mut self) -> JsResult<bool> {
         loop {
             let c = self.current_char();
             let t = match self.mode() {
@@ -21,11 +21,11 @@ impl LexerState {
             };
             match (c, t) {
                 (Some('\n'), CommentType::SingleLine) => {
-                    self.comment();
-                    self.push(TokenType::LineTerminate);
+                    try!(self.comment());
+                    try!(self.push(TokenType::LineTerminate));
                 }
                 (Some('/'), CommentType::MultiLineEnd) => {
-                    self.comment();
+                    try!(self.comment());
                 }
                 (Some('*'), CommentType::MultiLineStart) => {
                     self.update(LexerMode::Comment(CommentType::MultiLineEnd));
@@ -54,7 +54,7 @@ impl LexerState {
                 }
                 (None, _) => {
                     let tmp = self.tmp();
-                    self.push(TokenType::CommentLiteral(tmp));
+                    try!(self.push(TokenType::CommentLiteral(tmp)));
                     self.update(LexerMode::EOF);
                 }
             };

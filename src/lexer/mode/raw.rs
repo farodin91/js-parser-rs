@@ -1,10 +1,9 @@
-use error::error::Error;
+use error::JsResult;
 use lexer::enums::{LexerMode, TokenType, Keyword, LiteralType};
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
-    fn raw(&mut self) {
+    fn raw(&mut self) -> JsResult<()> {
         self.update(LexerMode::None);
         let tmp = self.tmp();
         let tmp = tmp.as_str();
@@ -37,7 +36,13 @@ impl LexerState {
             "break" => TokenType::Keyword(Keyword::Break),
             "continue" => TokenType::Keyword(Keyword::Continue),
             "new" => TokenType::Keyword(Keyword::New),
+            "case" => TokenType::Keyword(Keyword::Case),
+            "debugger" => TokenType::Keyword(Keyword::Debugger),
+            "throw" => TokenType::Keyword(Keyword::Throw),
             "let" => TokenType::Keyword(Keyword::Let),
+            "this" => TokenType::Keyword(Keyword::This),
+            "target" => TokenType::Keyword(Keyword::Target),
+            "delete" => TokenType::Keyword(Keyword::Delete),
             "true" => TokenType::Literal(LiteralType::Boolean(true)),
             "false" => TokenType::Literal(LiteralType::Boolean(false)),
             "null" => TokenType::Literal(LiteralType::Null),
@@ -45,10 +50,10 @@ impl LexerState {
                 TokenType::SymbolLiteral(String::from(tmp))
             }
         };
-        self.push(token);
+        self.push(token)
     }
 
-    pub fn parse_raw(&mut self) -> Result<bool, Error> {
+    pub fn parse_raw(&mut self) -> JsResult<bool> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -63,7 +68,7 @@ impl LexerState {
                 Some('\u{b}') |
                 Some('\u{a0}') |
                 None => {
-                    self.raw();
+                    try!(self.raw());
                     handled = false
                 }
                 Some('\r') |
@@ -90,7 +95,7 @@ impl LexerState {
                 Some('&') |
                 Some('|') |
                 Some('/') => {
-                    self.raw();
+                    try!(self.raw());
                     handled = false
                 }
                 Some('\\') => {

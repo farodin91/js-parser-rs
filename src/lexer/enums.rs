@@ -40,6 +40,7 @@ pub enum Keyword {
     Finally,
     Super,
     With,
+    Delete,
     Yield,
     Default,
     Function,
@@ -48,10 +49,15 @@ pub enum Keyword {
     For,
     While,
     Class,
+    Case,
     Break,
     Continue,
     New,
     Let,
+    Throw,
+    Debugger,
+    This,
+    Target,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -104,7 +110,7 @@ pub enum Punctuator {
     // (
     Point,
     // .
-    DoublePoint,
+    Colon,
     // :
     Equal,
     // =

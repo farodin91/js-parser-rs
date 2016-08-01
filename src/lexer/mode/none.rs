@@ -1,14 +1,14 @@
-use error::error::{Error, ErrorType, SyntaxErrorType};
+use error::JsResult;
+use error::error::{ErrorType, SyntaxErrorType};
 use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, StringType};
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
     fn start_punctuator(&mut self, t: Punctuator) {
         self.update(LexerMode::Punctuator(t, 0));
     }
 
-    pub fn parse_normal(&mut self, c: Option<char>) -> Result<bool, Error> {
+    pub fn parse_normal(&mut self, c: Option<char>) -> JsResult<bool> {
         let mut handled = true;
         match c {
             Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
@@ -35,7 +35,7 @@ impl LexerState {
                 self.tmp_push(c.unwrap());
             }
             Some('\n') |
-            Some('\r') => self.push(TokenType::LineTerminate),
+            Some('\r') => try!(self.push(TokenType::LineTerminate)),
             Some(' ') |
             Some('\t') |
             Some('\u{c}') |
@@ -47,17 +47,17 @@ impl LexerState {
                     return Err(err);
                 }
             },
-            Some(';') => self.push(TokenType::Semicolon),
-            Some(',') => self.push(TokenType::Comma),
-            Some('{') => self.push(TokenType::Punctuator(Punctuator::LeftBrace)),
-            Some('}') => self.push(TokenType::Punctuator(Punctuator::RightBrace)),
-            Some('[') => self.push(TokenType::Punctuator(Punctuator::LeftBracket)),
-            Some(']') => self.push(TokenType::Punctuator(Punctuator::RightBracket)),
-            Some('(') => self.push(TokenType::Punctuator(Punctuator::LeftParen)),
-            Some(')') => self.push(TokenType::Punctuator(Punctuator::RightParen)),
-            Some('~') => self.push(TokenType::Punctuator(Punctuator::Tilde)),
-            Some(':') => self.push(TokenType::Punctuator(Punctuator::DoublePoint)),
-            Some('?') => self.push(TokenType::Punctuator(Punctuator::QuestionMark)),
+            Some(';') => try!(self.push(TokenType::Semicolon)),
+            Some(',') => try!(self.push(TokenType::Comma)),
+            Some('{') => try!(self.push(TokenType::Punctuator(Punctuator::LeftBrace))),
+            Some('}') => try!(self.push(TokenType::Punctuator(Punctuator::RightBrace))),
+            Some('[') => try!(self.push(TokenType::Punctuator(Punctuator::LeftBracket))),
+            Some(']') => try!(self.push(TokenType::Punctuator(Punctuator::RightBracket))),
+            Some('(') => try!(self.push(TokenType::Punctuator(Punctuator::LeftParen))),
+            Some(')') => try!(self.push(TokenType::Punctuator(Punctuator::RightParen))),
+            Some('~') => try!(self.push(TokenType::Punctuator(Punctuator::Tilde))),
+            Some(':') => try!(self.push(TokenType::Punctuator(Punctuator::Colon))),
+            Some('?') => try!(self.push(TokenType::Punctuator(Punctuator::QuestionMark))),
             Some('.') => self.start_punctuator(Punctuator::Point),
             Some('|') => self.start_punctuator(Punctuator::OrBitwise),
             Some('*') => self.start_punctuator(Punctuator::Multiple),

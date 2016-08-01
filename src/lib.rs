@@ -4,9 +4,9 @@ pub mod scope;
 pub mod error;
 
 use lexer::enums::TokenType;
-use error::error::ErrorType;
+use error::error::{ErrorType};
 use lexer::state::{LexerState};
-use scope::state::JsScope;
+use scope::parser::Parser;
 
 pub struct JsContext {}
 
@@ -46,16 +46,15 @@ impl JsContext {
         let chars = OwningChars::new(str);
         let state = &mut LexerState::new(Box::new(chars.into_iter()));
         match state.parse() {
-            Ok(tokens) => {
-                match JsScope::from_tokens(tokens) {
-                    Ok(_) => Ok(()),
-                    Err(error) => Err(error.error_type)
-                }
-            },
-            Err(error) => Err(error.error_type)
+            Ok(_)=> (),
+            Err(err) => return Err(err.error_type),
+        }
+        let tokens = state.tokens();
+        match Parser::from_tokens(tokens) {
+            Ok(_)=> Ok(()),
+            Err(err) => Err(err.error_type)
         }
     }
-
 }
 
 
@@ -64,11 +63,8 @@ pub fn parse<T, I>(iter: T) -> Result<Vec<TokenType>, ErrorType> where
     I: Iterator<Item = char> + 'static {
     let state = &mut LexerState::new(Box::new(iter.into_iter()));
     match state.parse() {
-        Ok(tokens) => {
-            let tokens = tokens.into_iter().map(|token| { token.token }).collect();
-            Ok(tokens)
-        },
-        Err(error) => Err(error.error_type)
+        Ok(_)=> (),
+        Err(err) => return Err(err.error_type),
     }
-    //.map(|token|{token.token})
+    Ok(state.tokens().into_iter().map(|token| { token.token }).collect())
 }

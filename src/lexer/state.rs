@@ -1,6 +1,7 @@
-use lexer::enums::{TokenType, LexerMode};
+use lexer::enums::{TokenType, LexerMode, Keyword, Punctuator};
 use lexer::token::Token;
-use error::error::{Error, ErrorType};
+use error::JsResult;
+use error::error::{Error, ErrorType, SyntaxErrorType};
 use std::char;
 
 pub type LexerStateIterator = Box<Iterator<Item = char>>;
@@ -36,7 +37,7 @@ impl LexerState {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Token>, Error> {
+    pub fn parse(&mut self) -> Result<(), Error> {
         loop {
             self.next_char();
             let mut done = false; // mut done: bool
@@ -64,8 +65,7 @@ impl LexerState {
                 break;
             }
         }
-        let tokens = self.tokens();
-        Ok(tokens)
+        Ok(())
     }
 
     pub fn read_unicode(&mut self) -> Option<char> {
@@ -172,15 +172,45 @@ impl LexerState {
         self.last_token.clone()
     }
 
-    pub fn push(&mut self, t: TokenType) {
-        match t {
-            TokenType::CommentLiteral(_) => (),
-            _ => {
-                self.last_token = Some(t.clone())
+    pub fn push(&mut self, t: TokenType) -> JsResult<()>{
+        let t = match t {
+            TokenType::CommentLiteral(_) => None,
+            TokenType::LineTerminate => {
+                match self.last_token {
+                    Some(TokenType::Semicolon) => None,
+                    Some(TokenType::Punctuator(Punctuator::LeftBrace)) => None,
+                    Some(TokenType::Punctuator(Punctuator::RightBrace)) => None,
+                    None => None,
+                    Some(TokenType::Keyword(Keyword::Return)) => Some(TokenType::Semicolon),
+                    Some(TokenType::Keyword(Keyword::Break)) => Some(TokenType::Semicolon),
+                    Some(TokenType::Keyword(Keyword::Continue)) => Some(TokenType::Semicolon),
+                    Some(TokenType::Keyword(Keyword::Yield)) => {
+                        return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOL), self.col, self.line, None))
+                    },
+                    _ => Some(TokenType::LineTerminate)
+                }
             }
-        }
-        let token = Token::new(t, self.col, self.line);
-        self.tokens.push(token)
+            TokenType::Punctuator(Punctuator::Lamda) => {
+                match self.last_token {
+                    Some(TokenType::LineTerminate) => {
+                        return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOL), self.col, self.line, None))
+                    },
+                    _ => Some(TokenType::Punctuator(Punctuator::Lamda))
+                }
+            }
+            t => {
+                Some(t)
+            }
+        };
+        match t {
+            Some(t) => {
+                self.last_token = Some(t.clone());
+                let token = Token::new(t, self.col, self.line);
+                self.tokens.push(token)
+            }
+            None => ()
+        };
+        Ok(())
     }
 
     pub fn tokens(&self) -> Vec<Token> {

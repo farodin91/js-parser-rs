@@ -78,7 +78,7 @@ fn test_punctuator() {
     assert_eq!(js_parser_rs::parse("=>".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Lamda)]));
     assert_eq!(js_parser_rs::parse(".".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Point)]));
     assert_eq!(js_parser_rs::parse("...".chars()), Ok(vec![TokenType::Punctuator(Punctuator::ThreePoints)]));
-    assert_eq!(js_parser_rs::parse(":".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DoublePoint)]));
+    assert_eq!(js_parser_rs::parse(":".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Colon)]));
     assert_eq!(js_parser_rs::parse("=".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal)]));
     assert_eq!(js_parser_rs::parse("++".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Increment)]));
     assert_eq!(js_parser_rs::parse("--".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Decrement)]));
@@ -173,9 +173,9 @@ fn test_keyword() {
 
 #[test]
 fn test_terminate() {
-    assert_eq!(js_parser_rs::parse("\n".chars()), Ok(vec![TokenType::LineTerminate]));
-    assert_eq!(js_parser_rs::parse("\r".chars()), Ok(vec![TokenType::LineTerminate]));
-    assert_eq!(js_parser_rs::parse("\n ;".chars()), Ok(vec![TokenType::LineTerminate,TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("\n".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\r".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("\n ;".chars()), Ok(vec![TokenType::Semicolon]));
 }
 
 #[test]
@@ -183,9 +183,9 @@ fn test_regex() {
     assert_eq!(js_parser_rs::parse("= /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse("( /ab+b/g)".chars()), Ok(vec![TokenType::Punctuator(Punctuator::LeftParen), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Punctuator(Punctuator::RightParen)]));
     assert_eq!(js_parser_rs::parse("= /ab+b/;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Equal), TokenType::Regex(String::from("ab+b"), RegexIdentifier::None),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse(": /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::DoublePoint), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(": /ab+b/g;".chars()), Ok(vec![TokenType::Punctuator(Punctuator::Colon), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse(", /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse(", /*a*/ /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::CommentLiteral(String::from("a")), TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse(", /*a*/ /ab+b/g;".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab+b"), RegexIdentifier::Global),TokenType::Semicolon]));
     assert_eq!(js_parser_rs::parse(", /ab\\/b/g".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab/b"), RegexIdentifier::Global)]));
     assert_eq!(js_parser_rs::parse(", /ab\\\\b/g".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("ab\\b"), RegexIdentifier::Global)]));
     assert_eq!(js_parser_rs::parse(", /^h\\d$/i".chars()), Ok(vec![TokenType::Comma, TokenType::Regex(String::from("^h\\d$"), RegexIdentifier::Ignore)]));
@@ -193,14 +193,14 @@ fn test_regex() {
 
 #[test]
 fn test_comment() {
-    assert_eq!(js_parser_rs::parse("/*Hello World!".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello World!"))]));
-    assert_eq!(js_parser_rs::parse("// */ sdfsd".chars()), Ok(vec![TokenType::CommentLiteral(String::from(" */ sdfsd"))]));
-    assert_eq!(js_parser_rs::parse("/*Hello */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse("/*Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello *")),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse("/**Hello **/;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("*Hello *")),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello * ")),TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello ")),TokenType::LineTerminate,TokenType::Semicolon]));
-    assert_eq!(js_parser_rs::parse("/*Hello \n;*/".chars()), Ok(vec![TokenType::CommentLiteral(String::from("Hello \n;"))]));
+    assert_eq!(js_parser_rs::parse("/*Hello World!".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("// */ sdfsd".chars()), Ok(vec![]));
+    assert_eq!(js_parser_rs::parse("/*Hello */;".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello **/;".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/**Hello **/;".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello * */;".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("//Hello \n;".chars()), Ok(vec![TokenType::Semicolon]));
+    assert_eq!(js_parser_rs::parse("/*Hello \n;*/".chars()), Ok(vec![]));
     //assert_eq!(js_parser_rs::parse("// IE \\r a".chars()), Ok(vec![TokenType::CommentLiteral(String::from(" IE \r a"))]));
 }
 

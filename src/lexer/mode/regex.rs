@@ -1,16 +1,16 @@
-use error::error::Error;
+use error::JsResult;
 use lexer::enums::{LexerMode, RegexState, TokenType, RegexIdentifier};
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
-    fn regex(&mut self, t: RegexIdentifier) {
+    fn regex(&mut self, t: RegexIdentifier) -> JsResult<()> {
         let tmp = self.tmp();
-        self.push(TokenType::Regex(tmp, t));
+        try!(self.push(TokenType::Regex(tmp, t)));
         self.update(LexerMode::None);
+        Ok(())
     }
 
-    pub fn parse_regex(&mut self) -> Result<bool, Error> {
+    pub fn parse_regex(&mut self) -> JsResult<bool> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -32,11 +32,11 @@ impl LexerState {
                     true
                 }
                 (Some('g'), RegexState::Identifier, _) => {
-                    self.regex(RegexIdentifier::Global);
+                    try!(self.regex(RegexIdentifier::Global));
                     true
                 }
                 (Some('i'), RegexState::Identifier, _) => {
-                    self.regex(RegexIdentifier::Ignore);
+                    try!(self.regex(RegexIdentifier::Ignore));
                     true
                 }
                 (Some('\\'), RegexState::Normal, false) => {
@@ -49,7 +49,7 @@ impl LexerState {
                     true
                 }
                 (Some(_), RegexState::Identifier, _) => {
-                    self.regex(RegexIdentifier::None);
+                    try!(self.regex(RegexIdentifier::None));
                     false
                 }
                 (Some(c), RegexState::Normal, true) => {
@@ -63,7 +63,7 @@ impl LexerState {
                     true
                 }
                 (None, RegexState::Identifier, _) => {
-                    self.regex(RegexIdentifier::None);
+                    try!(self.regex(RegexIdentifier::None));
                     self.update(LexerMode::EOF);
                     true
                 }

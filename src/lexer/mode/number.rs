@@ -1,16 +1,16 @@
-use error::error::Error;
+use error::JsResult;
 use lexer::enums::{LexerMode, NumberType, TokenType, LiteralType};
 use lexer::state::{LexerState};
-use std::result::Result;
 use std::str::FromStr;
 
 impl LexerState {
-    fn number(&mut self, t: LiteralType) {
-        self.push(TokenType::Literal(t));
+    fn number(&mut self, t: LiteralType) -> JsResult<()> {
+        try!(self.push(TokenType::Literal(t)));
         self.update(LexerMode::None);
+        Ok(())
     }
 
-    pub fn parse_number(&mut self) -> Result<bool, Error> {
+    pub fn parse_number(&mut self) -> JsResult<bool> {
         let mut handled: bool;
         loop {
             let c = self.current_char();
@@ -60,22 +60,22 @@ impl LexerState {
                 }
                 (_, NumberType::None) | (_, NumberType::NoneLiteral) => {
                     let i = i64::from_str_radix(&self.tmp(), 10).unwrap();
-                    self.number(LiteralType::Integer(i));
+                    try!(self.number(LiteralType::Integer(i)));
                     false
                 }
                 (_, NumberType::Hex) => {
                     let i = i64::from_str_radix(&self.tmp(), 16).unwrap();
-                    self.number(LiteralType::Integer(i));
+                    try!(self.number(LiteralType::Integer(i)));
                     false
                 }
                 (_, NumberType::Octal) => {
                     let i = i64::from_str_radix(&self.tmp(), 8).unwrap();
-                    self.number(LiteralType::Integer(i));
+                    try!(self.number(LiteralType::Integer(i)));
                     false
                 }
                 (_, NumberType::Float) => {
                     let i = f64::from_str(&self.tmp()).unwrap();
-                    self.number(LiteralType::Float(i));
+                    try!(self.number(LiteralType::Float(i)));
                     false
                 }
             };

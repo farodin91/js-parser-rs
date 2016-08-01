@@ -1,11 +1,11 @@
-use error::error::{Error, ErrorType, SyntaxErrorType};
+use error::JsResult;
+use error::error::{ErrorType, SyntaxErrorType};
 use lexer::enums::{LexerMode, TokenType, LiteralType};
 use lexer::enums::StringType::*;
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
-    pub fn parse_string(&mut self) -> Result<bool, Error> {
+    pub fn parse_string(&mut self) -> JsResult<bool> {
         loop {
             let escaped = self.is_escaped();
             let c = self.current_char();
@@ -22,7 +22,7 @@ impl LexerState {
                 }
                 (Some('"'), false, DoubleQuote) => {
                     let tmp = self.tmp();
-                    self.push(TokenType::Literal(LiteralType::String(tmp)));
+                    try!(self.push(TokenType::Literal(LiteralType::String(tmp))));
                     self.update(LexerMode::None);
                 }
                 (Some('\''), true, SingleQuote) => {
@@ -31,7 +31,7 @@ impl LexerState {
                 }
                 (Some('\''), false, SingleQuote) => {
                     let tmp = self.tmp();
-                    self.push(TokenType::Literal(LiteralType::String(tmp)));
+                    try!(self.push(TokenType::Literal(LiteralType::String(tmp))));
                     self.update(LexerMode::None);
                 }
                 (Some('\\'), false, _) => {

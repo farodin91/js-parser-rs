@@ -1,19 +1,18 @@
-use error::error::Error;
+use error::JsResult;
 use lexer::enums::{LexerMode, TokenType, Punctuator, CommentType, RegexState};
 use lexer::state::{LexerState};
-use std::result::Result;
 
 impl LexerState {
-    fn punctuator(&mut self, t: Punctuator) {
-        self.push(TokenType::Punctuator(t));
+    fn punctuator(&mut self, t: Punctuator) -> JsResult<()> {
         self.update(LexerMode::None);
+        self.push(TokenType::Punctuator(t))
     }
 
     fn mode_punctuator(&mut self, t: Punctuator, i: i32) {
         self.update(LexerMode::Punctuator(t, i));
     }
 
-    pub fn parse_punctuator(&mut self, c: Option<char>, t: Punctuator, i: i32) -> Result<bool, Error> {
+    pub fn parse_punctuator(&mut self, c: Option<char>, t: Punctuator, i: i32) -> JsResult<bool> {
         let handled = match (c, t) {
             (Some('<'), Punctuator::SmallThan) => {
                 self.mode_punctuator(Punctuator::LeftShift, 0);
@@ -28,16 +27,16 @@ impl LexerState {
                 true
             }
             (Some('+'), Punctuator::Plus) => {
-                self.punctuator(Punctuator::Increment);
+                try!(self.punctuator(Punctuator::Increment));
                 true
             }
             (Some('>'), Punctuator::Equal) => {
-                self.punctuator(Punctuator::Lamda);
+                try!(self.punctuator(Punctuator::Lamda));
                 true
             }
             (Some('.'), Punctuator::Point) => {
                 if i == 1 {
-                    self.punctuator(Punctuator::ThreePoints)
+                    try!(self.punctuator(Punctuator::ThreePoints))
                 } else {
                     self.mode_punctuator(Punctuator::Point, 1);
                 }
@@ -45,21 +44,21 @@ impl LexerState {
             }
             (_, Punctuator::Point) => {
                 if i == 1 {
-                    self.punctuator(Punctuator::Point);
+                    try!(self.punctuator(Punctuator::Point));
                 }
-                self.punctuator(Punctuator::Point);
+                try!(self.punctuator(Punctuator::Point));
                 false
             }
             (Some('='), Punctuator::RightShiftUnsigned) => {
-                self.punctuator(Punctuator::RightShiftUnsignedAssign);
+                try!(self.punctuator(Punctuator::RightShiftUnsignedAssign));
                 true
             }
             (Some('='), Punctuator::GreaterThan) => {
-                self.punctuator(Punctuator::GreaterAndEqualThan);
+                try!(self.punctuator(Punctuator::GreaterAndEqualThan));
                 true
             }
             (Some('='), Punctuator::SmallThan) => {
-                self.punctuator(Punctuator::SmallAndEqualThan);
+                try!(self.punctuator(Punctuator::SmallAndEqualThan));
                 true
             }
             (Some('='), Punctuator::Equal) => {
@@ -71,51 +70,51 @@ impl LexerState {
                 true
             }
             (Some('='), Punctuator::IsEqual) => {
-                self.punctuator(Punctuator::IsSame);
+                try!(self.punctuator(Punctuator::IsSame));
                 true
             }
             (Some('='), Punctuator::IsNotEqual) => {
-                self.punctuator(Punctuator::IsNotSame);
+                try!(self.punctuator(Punctuator::IsNotSame));
                 true
             }
             (Some('='), Punctuator::Divide) => {
-                self.punctuator(Punctuator::DivideAssign);
+                try!(self.punctuator(Punctuator::DivideAssign));
                 true
             }
             (Some('='), Punctuator::Mod) => {
-                self.punctuator(Punctuator::ModAssign);
+                try!(self.punctuator(Punctuator::ModAssign));
                 true
             }
             (Some('='), Punctuator::Xor) => {
-                self.punctuator(Punctuator::XorAssign);
+                try!(self.punctuator(Punctuator::XorAssign));
                 true
             }
             (Some('='), Punctuator::OrBitwise) => {
-                self.punctuator(Punctuator::OrBitwiseAssign);
+                try!(self.punctuator(Punctuator::OrBitwiseAssign));
                 true
             }
             (Some('='), Punctuator::Multiple) => {
-                self.punctuator(Punctuator::MultipleAssign);
+                try!(self.punctuator(Punctuator::MultipleAssign));
                 true
             }
             (Some('='), Punctuator::AndBitwise) => {
-                self.punctuator(Punctuator::AndBitwiseAssign);
+                try!(self.punctuator(Punctuator::AndBitwiseAssign));
                 true
             }
             (Some('='), Punctuator::Exp) => {
-                self.punctuator(Punctuator::ExpAssign);
+                try!(self.punctuator(Punctuator::ExpAssign));
                 true
             }
             (Some('='), Punctuator::LeftShift) => {
-                self.punctuator(Punctuator::LeftShiftAssign);
+                try!(self.punctuator(Punctuator::LeftShiftAssign));
                 true
             }
             (Some('='), Punctuator::RightShift) => {
-                self.punctuator(Punctuator::RightShiftAssign);
+                try!(self.punctuator(Punctuator::RightShiftAssign));
                 true
             }
             (Some('&'), Punctuator::AndBitwise) => {
-                self.punctuator(Punctuator::And);
+                try!(self.punctuator(Punctuator::And));
                 true
             }
             (Some('*'), Punctuator::Multiple) => {
@@ -123,15 +122,15 @@ impl LexerState {
                 true
             }
             (Some('|'), Punctuator::OrBitwise) => {
-                self.punctuator(Punctuator::Or);
+                try!(self.punctuator(Punctuator::Or));
                 true
             }
             (Some('-'), Punctuator::Minus) => {
-                self.punctuator(Punctuator::Decrement);
+                try!(self.punctuator(Punctuator::Decrement));
                 true
             }
             (_, Punctuator::SmallThan) | (_, Punctuator::GreaterThan) => {
-                self.punctuator(t);
+                try!(self.punctuator(t));
                 false
             }
             (Some('/'), Punctuator::Divide) => {
@@ -147,7 +146,7 @@ impl LexerState {
             (Some(c), Punctuator::Divide) => {
                 let last_token = self.last_token();
                 match last_token {
-                    Some(TokenType::Punctuator(Punctuator::DoublePoint)) |
+                    Some(TokenType::Punctuator(Punctuator::Colon)) |
                     Some(TokenType::Punctuator(Punctuator::Equal)) |
                     Some(TokenType::Punctuator(Punctuator::LeftParen)) |
                     Some(TokenType::Comma) => {
@@ -157,13 +156,13 @@ impl LexerState {
                         true
                     }
                     _ => {
-                        self.punctuator(t);
+                        try!(self.punctuator(t));
                         false
                     }
                 }
             }
             (_, _) => {
-                self.punctuator(t);
+                try!(self.punctuator(t));
                 false
             }
         };
