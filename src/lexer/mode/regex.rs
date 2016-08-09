@@ -1,11 +1,11 @@
 use error::JsResult;
-use lexer::enums::{LexerMode, RegexState, TokenType, RegexIdentifier};
+use lexer::enums::{LexerMode, RegexState, TokenType, LiteralType, RegexIdentifier};
 use lexer::state::{LexerState};
 
 impl LexerState {
     fn regex(&mut self, t: RegexIdentifier) -> JsResult<()> {
         let tmp = self.tmp();
-        try!(self.push(TokenType::Regex(tmp, t)));
+        try!(self.push(TokenType::Literal(LiteralType::Regex(tmp, t))));
         self.update(LexerMode::None);
         Ok(())
     }

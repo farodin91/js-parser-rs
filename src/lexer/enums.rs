@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum NumberType {
     None,
     NoneLiteral,
@@ -7,7 +7,7 @@ pub enum NumberType {
     Float
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum CommentType {
     SingleLine,
     MultiLineStart,
@@ -15,75 +15,60 @@ pub enum CommentType {
     MultiLineNormal
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum StringType {
     SingleQuote,
     DoubleQuote
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Clone, Copy)]
-pub enum Keyword {
-    Var,
-    If,
-    Else,
-    Do,
-    Typeof,
-    Switch,
-    Catch,
-    Try,
-    Instanceof,
-    Export,
-    Return,
-    Void,
-    Extends,
-    Const,
-    Finally,
-    Super,
-    With,
-    Delete,
-    Yield,
-    Default,
-    Function,
-    Of,
-    In,
-    For,
-    While,
-    Class,
-    Case,
-    Break,
-    Continue,
-    New,
-    Let,
-    Throw,
-    Debugger,
-    This,
-    Target,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum RegexState {
     Normal,
     Identifier
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum LexerMode {
     None,
     String(StringType),
     Number(NumberType),
-    Punctuator(Punctuator, i32),
+    Punctuator(TokenType, i32),
     Comment(CommentType),
     Raw,
     Regex(RegexState),
     EOF
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Clone, Copy)]
-pub enum Punctuator {
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub enum LiteralType {
+    String(String),
+    Regex(String, RegexIdentifier),
+    Integer(i64),
+    Float(f64),
+    Boolean(bool),
+    Null
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub enum RegexIdentifier {
+    Global,
+    Ignore,
+    None
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub enum TokenType {
+    Literal(LiteralType),
+    CommentLiteral(String),
+    Identifier(String),
     Plus,
     // +
     Minus,
     // -
+    PlusAssign,
+    // +=
+    MinusAssign,
+    // -=
     Divide,
     // /
     DivideAssign,
@@ -174,35 +159,46 @@ pub enum Punctuator {
     // >>=
     ThreePoints,
     // ...
-    RightShiftUnsignedAssign
+    RightShiftUnsignedAssign,
     // >>>=
-}
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub enum LiteralType {
-    String(String),
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
-    Null
-}
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub enum RegexIdentifier {
-    Global,
-    Ignore,
-    None
-}
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub enum TokenType {
-    Punctuator(Punctuator),
-    Literal(LiteralType),
-    CommentLiteral(String),
-    SymbolLiteral(String),
-    Keyword(Keyword),
+    Var,
+    If,
+    Else,
+    Do,
+    Typeof,
+    Switch,
+    Catch,
+    Try,
+    Instanceof,
+    Export,
+    Return,
+    Void,
+    Extends,
+    Const,
+    Finally,
+    Super,
+    With,
+    Delete,
+    Yield,
+    Default,
+    Function,
+    Of,
+    In,
+    For,
+    While,
+    Class,
+    Case,
+    Break,
+    Continue,
+    New,
+    Let,
+    Throw,
+    Debugger,
+    This,
+    Target,
     Semicolon,
     Comma,
-    Regex(String, RegexIdentifier),
+    Get,
+    Set,
     LineTerminate
 }

@@ -66,5 +66,5 @@ pub fn parse<T, I>(iter: T) -> Result<Vec<TokenType>, ErrorType> where
         Ok(_)=> (),
         Err(err) => return Err(err.error_type),
     }
-    Ok(state.tokens().into_iter().map(|token| { token.token }).collect())
+    Ok(state.tokens().iter().map(|token| { token.clone().token }).collect())
 }

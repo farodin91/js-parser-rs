@@ -4,3 +4,7 @@ mod expr;
 mod try;
 mod switch;
 mod block;
+mod lefthandsideexpr;
+mod function;
+mod object;
+mod operators;

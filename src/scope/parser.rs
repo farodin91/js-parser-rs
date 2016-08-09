@@ -1,5 +1,5 @@
 use lexer::token::Token;
-use lexer::enums::{TokenType, Keyword, Punctuator};
+use lexer::enums::{TokenType};
 use error::JsResult;
 use error::error::{Error, ErrorType, SyntaxErrorType};
 use std::iter::Peekable;
@@ -9,6 +9,7 @@ pub type TokenPeekable = Peekable<Box<IntoIter<Token>>>;
 
 struct Scope {}
 
+#[derive(PartialEq, Debug, Clone)]
 pub enum Item {
     Item,
     None
@@ -36,6 +37,7 @@ impl Parser {
     }
 
     pub fn bump(&mut self) -> JsResult<()> {
+        println!("bump {:?}", self.peek());
         self.index += 1;
         if self.index > self.len {
             Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOF), 0, 0, None))
@@ -61,7 +63,7 @@ impl Parser {
 
     pub fn expect(&mut self, token: TokenType) -> JsResult<()> {
         let next = try!(self.next());
-        println!("expected: {:?} == {:?}", token.clone() , next.clone());
+        println!("expected: {:?} == {:?}", token.clone(), next.clone());
 
         if next.token == token {
             return Ok(());
@@ -111,25 +113,31 @@ impl Parser {
         while try!(self.consume(TokenType::Comma)) {
             try!(self.parse_variable_declaration());
         }
-        try!(self.expect(TokenType::Semicolon));
+        if !try!(self.consume(TokenType::LineTerminate)) {
+            try!(self.expect(TokenType::Semicolon));
+        }
         Ok(Item::Item)
     }
 
     pub fn parse_initializer(&mut self) -> JsResult<Item> {
         println!("parse_initializer {:?}", self.peek());
-        try!(self.expect(TokenType::Punctuator(Punctuator::Equal)));
-        self.parse_assign_expr()
+        if !try!(self.consume(TokenType::Equal)) {
+            Ok(Item::None)
+        } else {
+            self.parse_assign_expr()
+        }
     }
 
     pub fn parse_variable_declaration(&mut self) -> JsResult<Item> {
         println!("parse_variable_declaration {:?}", self.peek());
         match self.peek() {
-            Some(TokenType::SymbolLiteral(_)) => {
+            Some(TokenType::Identifier(_)) => {
                 try!(self.bump());
+
                 return self.parse_initializer()
             }
-            Some(TokenType::Punctuator(Punctuator::LeftBrace)) => return Ok(Item::Item),
-            Some(TokenType::Punctuator(Punctuator::LeftBracket)) => return Ok(Item::Item),
+            Some(TokenType::LeftBrace) => return Ok(Item::Item),
+            Some(TokenType::LeftBracket) => return Ok(Item::Item),
             Some(t) => {
                 try!(self.fatal(SyntaxErrorType::Unexpected(t)));
             }
@@ -145,7 +153,7 @@ impl Parser {
             Ok(Item::Item)
         } else {
             match self.peek() {
-                Some(TokenType::SymbolLiteral(_)) => (),
+                Some(TokenType::Identifier(_)) => (),
                 Some(t) => {
                     return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::Unexpected(t)), 0, 0, None))
                 }
@@ -164,16 +172,21 @@ impl Parser {
             Ok(Item::Item)
         } else {
             let result = try!(self.parse_expr());
-            try!(self.expect(TokenType::Semicolon));
+            match self.peek() {
+                Some(TokenType::Semicolon) => try!(self.bump()),
+                Some(TokenType::LineTerminate) => try!(self.bump()),
+                Some(TokenType::RightBrace) => (),
+                _ => ()
+            }
             Ok(result)
         }
     }
 
     pub fn parse_with(&mut self) -> JsResult<Item> {
         try!(self.bump());
-        try!(self.expect(TokenType::Punctuator(Punctuator::LeftParen)));
-        try!(self.parse_expr());
-        try!(self.expect(TokenType::Punctuator(Punctuator::RightParen)));
+        try!(self.expect(TokenType::LeftParen));
+        try!( self.parse_expr());
+        try!( self.expect(TokenType::RightParen));
         self.parse_stmt()
     }
 
@@ -184,7 +197,10 @@ impl Parser {
 
     pub fn parse_while(&mut self) -> JsResult<Item> {
         try!(self.bump());
-        Ok(Item::Item)
+        try!(self.expect(TokenType::LeftParen));
+        try!(self.parse_expr());
+        try!(self.expect(TokenType::RightParen));
+        self.parse_stmt()
     }
 
     pub fn parse_for(&mut self) -> JsResult<Item> {
@@ -198,8 +214,10 @@ impl Parser {
         Ok(Item::Item)
     }
 
-    pub fn parse_function(&mut self) -> JsResult<Item> {
+    pub fn parse_break(&mut self) -> JsResult<Item> {
         try!(self.bump());
+        try!(self.consume_identifier());
+        try!(self.expect(TokenType::Semicolon));
         Ok(Item::Item)
     }
 
@@ -225,9 +243,9 @@ impl Parser {
     pub fn parse_if(&mut self) -> JsResult<Item> {
         println!("parse_if {:?}", self.peek());
         try!(self.bump());
-        try!(self.expect(TokenType::Punctuator(Punctuator::LeftParen)));
+        try!(self.expect(TokenType::LeftParen));
         try!(self.parse_expr());
-        try!(self.expect(TokenType::Punctuator(Punctuator::RightParen)));
+        try!(self.expect(TokenType::RightParen));
 
         let then = try!(self.parse_stmt());
         match then {
@@ -235,34 +253,25 @@ impl Parser {
             Item::None => try!(self.fatal(SyntaxErrorType::UnexpectedEOF))
         }
 
-        if try!(self.consume(TokenType::Keyword(Keyword::Else))) {
+        if try!(self.consume(TokenType::Else)) {
             try!(self.parse_stmt());
         }
         Ok(Item::Item)
     }
 
-    pub fn parse_cover_parenthesized_expression_and_arrow_parameter_list(&mut self) -> JsResult<Item> {
-        println!("parse_cover_parenthesized_expression_and_arrow_parameter_list {:?}", self.peek());
-        try!(self.expect(TokenType::Punctuator(Punctuator::LeftParen)));
-        if try!(self.consume(TokenType::Punctuator(Punctuator::ThreePoints))) {} else {
+    pub fn parse_element_list(&mut self) -> JsResult<Item> {
+        if !try!(self.consume(TokenType::ThreePoints)) {
             try!(self.parse_expr());
-            if try!(self.consume(TokenType::Punctuator(Punctuator::ThreePoints))) {}
+            try!(self.consume(TokenType::ThreePoints));
         }
-        try!(self.expect(TokenType::Punctuator(Punctuator::RightParen)));
-        Ok(Item::Item)
-    }
-
-    pub fn parse_object_literal(&mut self) -> JsResult<Item> {
-        println!("parse_object_literal {:?}", self.peek());
-        try!(self.expect(TokenType::Punctuator(Punctuator::LeftBrace)));
-        try!(self.expect(TokenType::Punctuator(Punctuator::RightBrace)));
         Ok(Item::Item)
     }
 
     pub fn parse_array_literal(&mut self) -> JsResult<Item> {
         println!("parse_array_literal {:?}", self.peek());
-        try!(self.expect(TokenType::Punctuator(Punctuator::LeftBracket)));
-        try!(self.expect(TokenType::Punctuator(Punctuator::RightBracket)));
+        try!(self.expect(TokenType::LeftBracket));
+        try!(self.parse_element_list());
+        try!(self.expect(TokenType::RightBracket));
         Ok(Item::Item)
     }
 }

@@ -1,10 +1,10 @@
 use error::JsResult;
 use error::error::{ErrorType, SyntaxErrorType};
-use lexer::enums::{LexerMode, TokenType, Punctuator, NumberType, StringType};
+use lexer::enums::{LexerMode, TokenType, NumberType, StringType};
 use lexer::state::{LexerState};
 
 impl LexerState {
-    fn start_punctuator(&mut self, t: Punctuator) {
+    fn start_punctuator(&mut self, t: TokenType) {
         self.update(LexerMode::Punctuator(t, 0));
     }
 
@@ -49,28 +49,28 @@ impl LexerState {
             },
             Some(';') => try!(self.push(TokenType::Semicolon)),
             Some(',') => try!(self.push(TokenType::Comma)),
-            Some('{') => try!(self.push(TokenType::Punctuator(Punctuator::LeftBrace))),
-            Some('}') => try!(self.push(TokenType::Punctuator(Punctuator::RightBrace))),
-            Some('[') => try!(self.push(TokenType::Punctuator(Punctuator::LeftBracket))),
-            Some(']') => try!(self.push(TokenType::Punctuator(Punctuator::RightBracket))),
-            Some('(') => try!(self.push(TokenType::Punctuator(Punctuator::LeftParen))),
-            Some(')') => try!(self.push(TokenType::Punctuator(Punctuator::RightParen))),
-            Some('~') => try!(self.push(TokenType::Punctuator(Punctuator::Tilde))),
-            Some(':') => try!(self.push(TokenType::Punctuator(Punctuator::Colon))),
-            Some('?') => try!(self.push(TokenType::Punctuator(Punctuator::QuestionMark))),
-            Some('.') => self.start_punctuator(Punctuator::Point),
-            Some('|') => self.start_punctuator(Punctuator::OrBitwise),
-            Some('*') => self.start_punctuator(Punctuator::Multiple),
-            Some('&') => self.start_punctuator(Punctuator::AndBitwise),
-            Some('^') => self.start_punctuator(Punctuator::Xor),
-            Some('+') => self.start_punctuator(Punctuator::Plus),
-            Some('-') => self.start_punctuator(Punctuator::Minus),
-            Some('%') => self.start_punctuator(Punctuator::Mod),
-            Some('=') => self.start_punctuator(Punctuator::Equal),
-            Some('<') => self.start_punctuator(Punctuator::SmallThan),
-            Some('/') => self.start_punctuator(Punctuator::Divide),
-            Some('!') => self.start_punctuator(Punctuator::Invert),
-            Some('>') => self.start_punctuator(Punctuator::GreaterThan),
+            Some('{') => try!(self.push(TokenType::LeftBrace)),
+            Some('}') => try!(self.push(TokenType::RightBrace)),
+            Some('[') => try!(self.push(TokenType::LeftBracket)),
+            Some(']') => try!(self.push(TokenType::RightBracket)),
+            Some('(') => try!(self.push(TokenType::LeftParen)),
+            Some(')') => try!(self.push(TokenType::RightParen)),
+            Some('~') => try!(self.push(TokenType::Tilde)),
+            Some(':') => try!(self.push(TokenType::Colon)),
+            Some('?') => try!(self.push(TokenType::QuestionMark)),
+            Some('.') => self.start_punctuator(TokenType::Point),
+            Some('|') => self.start_punctuator(TokenType::OrBitwise),
+            Some('*') => self.start_punctuator(TokenType::Multiple),
+            Some('&') => self.start_punctuator(TokenType::AndBitwise),
+            Some('^') => self.start_punctuator(TokenType::Xor),
+            Some('+') => self.start_punctuator(TokenType::Plus),
+            Some('-') => self.start_punctuator(TokenType::Minus),
+            Some('%') => self.start_punctuator(TokenType::Mod),
+            Some('=') => self.start_punctuator(TokenType::Equal),
+            Some('<') => self.start_punctuator(TokenType::SmallThan),
+            Some('/') => self.start_punctuator(TokenType::Divide),
+            Some('!') => self.start_punctuator(TokenType::Invert),
+            Some('>') => self.start_punctuator(TokenType::GreaterThan),
             None => {
                 self.update(LexerMode::EOF)
             }

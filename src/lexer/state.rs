@@ -1,4 +1,4 @@
-use lexer::enums::{TokenType, LexerMode, Keyword, Punctuator};
+use lexer::enums::{TokenType, LexerMode};
 use lexer::token::Token;
 use error::JsResult;
 use error::error::{Error, ErrorType, SyntaxErrorType};
@@ -37,7 +37,7 @@ impl LexerState {
         }
     }
 
-    pub fn parse(&mut self) -> Result<(), Error> {
+    pub fn parse(&mut self) -> JsResult<()> {
         loop {
             self.next_char();
             let mut done = false; // mut done: bool
@@ -161,7 +161,7 @@ impl LexerState {
     }
 
     pub fn mode(&self) -> LexerMode {
-        self.mode
+        self.mode.clone()
     }
 
     pub fn update(&mut self, t: LexerMode) {
@@ -177,25 +177,20 @@ impl LexerState {
             TokenType::CommentLiteral(_) => None,
             TokenType::LineTerminate => {
                 match self.last_token {
-                    Some(TokenType::Semicolon) => None,
-                    Some(TokenType::Punctuator(Punctuator::LeftBrace)) => None,
-                    Some(TokenType::Punctuator(Punctuator::RightBrace)) => None,
                     None => None,
-                    Some(TokenType::Keyword(Keyword::Return)) => Some(TokenType::Semicolon),
-                    Some(TokenType::Keyword(Keyword::Break)) => Some(TokenType::Semicolon),
-                    Some(TokenType::Keyword(Keyword::Continue)) => Some(TokenType::Semicolon),
-                    Some(TokenType::Keyword(Keyword::Yield)) => {
+                    Some(TokenType::Semicolon) => None,
+                    Some(TokenType::Yield) => {
                         return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOL), self.col, self.line, None))
                     },
                     _ => Some(TokenType::LineTerminate)
                 }
             }
-            TokenType::Punctuator(Punctuator::Lamda) => {
+            TokenType::Lamda => {
                 match self.last_token {
                     Some(TokenType::LineTerminate) => {
                         return Err(Error::new(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedEOL), self.col, self.line, None))
                     },
-                    _ => Some(TokenType::Punctuator(Punctuator::Lamda))
+                    _ => Some(TokenType::Lamda)
                 }
             }
             t => {
@@ -215,5 +210,92 @@ impl LexerState {
 
     pub fn tokens(&self) -> Vec<Token> {
         self.tokens.clone()
+    }
+}
+
+impl Iterator for LexerState {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        //let c = self.next_char();
+
+        /*match c {
+            Some('a' ... 'z') | Some('A' ... 'Z') | Some('_') | Some('$') => {
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
+            }
+            Some('"') => {
+                self.reset_tmp();
+            }
+            Some('\'') => {
+                self.reset_tmp();
+            }
+            Some('0') => {
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
+            }
+            Some('1'...'9') => {
+                self.reset_tmp();
+                self.tmp_push(c.unwrap());
+            }
+            Some('\n') |
+            Some('\r') => Some(TokenType::LineTerminate),
+            Some(' ') |
+            Some('\t') |
+            Some('\u{c}') |
+            Some('\u{b}') |
+            Some('\u{a0}') => {
+                if self.last_char_is_unicode() {
+                    let c = self.current_char();
+                    let err = self.error(ErrorType::SyntaxError(SyntaxErrorType::UnexpectedChar(c.unwrap())));
+                    return Err(err);
+                }
+            },
+            Some(';') => Some(TokenType::Semicolon),
+            Some(',') => Some(TokenType::Comma),
+            Some('{') => Some(TokenType::Punctuator(Punctuator::LeftBrace)),
+            Some('}') => Some(TokenType::Punctuator(Punctuator::RightBrace)),
+            Some('[') => Some(TokenType::Punctuator(Punctuator::LeftBracket)),
+            Some(']') => Some(TokenType::Punctuator(Punctuator::RightBracket)),
+            Some('(') => Some(TokenType::Punctuator(Punctuator::LeftParen)),
+            Some(')') => Some(TokenType::Punctuator(Punctuator::RightParen)),
+            Some('~') => Some(TokenType::Punctuator(Punctuator::Tilde)),
+            Some(':') => Some(TokenType::Punctuator(Punctuator::Colon)),
+            Some('?') => Some(TokenType::Punctuator(Punctuator::QuestionMark)),
+            Some('.') => self.start_punctuator(Punctuator::Point),
+            Some('|') => self.start_punctuator(Punctuator::OrBitwise),
+            Some('*') => self.start_punctuator(Punctuator::Multiple),
+            Some('&') => self.start_punctuator(Punctuator::AndBitwise),
+            Some('^') => self.start_punctuator(Punctuator::Xor),
+            Some('+') => self.start_punctuator(Punctuator::Plus),
+            Some('-') => self.start_punctuator(Punctuator::Minus),
+            Some('%') => self.start_punctuator(Punctuator::Mod),
+            Some('=') => self.start_punctuator(Punctuator::Equal),
+            Some('<') => self.start_punctuator(Punctuator::SmallThan),
+            Some('/') => self.start_punctuator(Punctuator::Divide),
+            Some('!') => self.start_punctuator(Punctuator::Invert),
+            Some('>') => self.start_punctuator(Punctuator::GreaterThan),
+            None => {
+                self.update(LexerMode::EOF)
+            }
+            Some('\\') => {
+                let unicode = self.read_unicode();
+                match unicode {
+                    Some(c) => {
+                        println!("{:?}", c);
+                        self.overwrite_current_char_with_unicode(c);
+                        handled = false
+                    }
+                    _ => {
+                        panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                    }
+                }
+            }
+            _ => {
+                panic!("Unhandled Parser State Reached: {:?}, {:?}, {:?}, col {:?}, line {:?}", c, self.mode(), self.is_escaped(), self.col(), self.line());
+                //self.update(LexerMode::EOF);
+            }
+        }*/
+        None
     }
 }
